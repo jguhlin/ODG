@@ -1,51 +1,68 @@
-Leiningen.gitignore
-# =========================
-# Operating System Files
-# =========================
-
-# OSX
-# =========================
-
-.DS_Store
-.AppleDouble
-.LSOverride
-
-# Thumbnails
-._*
-
-# Files that might appear in the root of a volume
-.DocumentRevisions-V100
-.fseventsd
-.Spotlight-V100
-.TemporaryItems
-.Trashes
-.VolumeIcon.icns
-
-# Directories potentially created on remote AFP share
-.AppleDB
-.AppleDesktop
-Network Trash Folder
-Temporary Items
-.apdisk
-
-# Windows
-# =========================
-
-# Windows image file caches
-Thumbs.db
-ehthumbs.db
-
-# Folder config file
-Desktop.ini
-
-# Recycle Bin used on file shares
-$RECYCLE.BIN/
-
-# Windows Installer files
-*.cab
-*.msi
-*.msm
-*.msp
-
-# Windows shortcuts
-*.lnk
+autodoc/**
+/target
+/lib
+/classes
+/checkouts
+/data
+/data*
+pom.xml
+*.jar
+*.class
+.lein-deps-sum
+.lein-failures
+.lein-plugins
+.lein-repl-history
+.lein*
+*.gff
+*.fasta
+*.tgz
+*.zip
+*.gz
+*.fa
+*.blast
+*.fpkm_tracking
+*.output
+*.gtf
+.gtf
+*.log
+/bin
+merged.gtf
+*.tsv
+*.csv
+Mt3.0_psuedomolecules
+Mt3.5.1_all_BACs.fa
+scripts/complete_mrna_hits.sam
+ipscan*
+.classpath
+/.settings
+*.fas
+*-output
+run-local.sh
+run-local.json
+/data.old
+/utr.db
+/utr.db.*
+/db_scripts
+/tmp
+/dbs
+/odg.db
+/odg.db/*
+odg.db*
+odg.db
+justmt*
+mt4only.db/*
+/runs
+annotate.sh
+annotate2.sh
+*.gdf
+exp.sh
+nocopy*
+.nrepl-port
+/db
+*nrepl*
+.fuse*
+/*.json
+*.db
+/*.db
+*.txt
+*.tsv
