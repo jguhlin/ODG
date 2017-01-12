@@ -50,7 +50,27 @@ To run the query server, run "./odg-query.sh" and point your web browser to http
 ## For More Information
 Please see the user guide, available [[here]]
 
-## License
+## Releases
 
+ODG is offered as 3 releases, and should work on Windows, Mac, and *nix Systems. *nix systems are preferred, but ODG is developed and tested primarily on Windows.
+
+### Requirements
+
+Java 1.8 is required. You likely have Java installed on your system. If not you may download it at http://www.oracle.com/technetwork/java/javase/downloads/ 
+ODG is expected to work with, but not tested on, OpenJDK versions equivalent to Java 1.8
+
+### Test-drive ODG
+This version contains a completed database built with publicly available data and compiled information for Arabidopsis thaliana, Glycine max, Medicago truncatula, and Phaseolus vulgaris. It is provided here to provide a way for you to test out the features of ODG and see if it is right for you.
+    ODG.v1.2017_01_15.test_drive.zip  
+
+### Tutorial ODG
+This version contains the same data as the test-drive version but none of the compiled data (such as InterProScan and BLAST+ results) and is unconfigured. You may download this and follow the tutorial in the user's guide to generate a version of ODG similar to the test-drive version. You may also replace genomes or add genomes as you like.
+    ODG.v1.2017_01_15.tutorial.zip
+
+### Empty ODG
+This version contains no test data and is ready to be populated with your genomes and data of choice. 
+    ODG.v1.2017_01_15.zip
+
+## License
 Copyright © 2017 Joseph Guhlin
 
