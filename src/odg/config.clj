@@ -182,16 +182,12 @@
          :genomes (guess-genomes "data")
          }))))
 
-;(swap! config merge {species-name {species-version @species-version-config}})
-
 (defn save
   [data]
   (let [d (parse-string data true)
         genomes (:genomes d)
         global (:global d)]
-    (println "Data:" d)
-    (println "Genomes:" genomes)
-    (println "Global:" global)
+    (println "Configuration saved to" @config-file)
     (when (and (not (nil? genomes)) (not (nil? global)))
       (reset! config {:global global :genomes genomes})
       (println @config)
@@ -232,6 +228,7 @@
   (GET  "/config" [] get-config)
   (GET  "/" [] (resp/redirect "/index.html"))
   (POST "/save" [data] (fn [a] (save data)))
+  (POST "/save_and_quit" [data] (fn [a] (save data) (Thread/sleep 5000) (System/exit 0)))
   (route/resources "/" {:root "config"})
   )
 
@@ -255,6 +252,7 @@
   (load-existing @config-file)
  
   (println "Server starting on port 33333")
+  (println "Visit http://localhost:33333 in your web browser to continue")
   (run-jetty #'handler {:port 33333}))
 
 (defn dev-init

@@ -63,10 +63,6 @@ ODG is expected to work with, but not tested on, OpenJDK versions equivalent to 
 This version contains a completed database built with publicly available data and compiled information for Arabidopsis thaliana, Glycine max, Medicago truncatula, and Phaseolus vulgaris. It is provided here to provide a way for you to test out the features of ODG and see if it is right for you.
     ODG.v1.2017_01_15.test_drive.zip  
 
-### Tutorial ODG
-This version contains the same data as the test-drive version but none of the compiled data (such as InterProScan and BLAST+ results) and is unconfigured. You may download this and follow the tutorial in the user's guide to generate a version of ODG similar to the test-drive version. You may also replace genomes or add genomes as you like.
-    ODG.v1.2017_01_15.tutorial.zip
-
 ### Empty ODG
 This version contains no test data and is ready to be populated with your genomes and data of choice. 
     ODG.v1.2017_01_15.zip

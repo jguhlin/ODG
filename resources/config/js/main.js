@@ -59,12 +59,15 @@ var save = function() {
 
 var save_and_quit = function() {
 	$("#savingModal").modal();
-	$.post("/save", {"data": JSON.stringify({"genomes": genomes_config, "global": global_config})})
+	$.post("/save_and_quit", {"data": JSON.stringify({"genomes": genomes_config, "global": global_config})})
 		.done(function() { _.delay(function() { $("#savingModal").modal('hide'); }, 2000)})
 		.fail(function() { 
 			alert("There was an error saving your configuration");
 			$("#savingModal").modal('hide');
 		});
+	
+	alert("Please close this browser window (or tab). The Configuration Web Service is now disabled");
+	
 }
 
 $('#save').click(save);

@@ -167,6 +167,7 @@
       (get node-properties "tss_id")
       (get node-properties "oid")
       (get node-properties "locus_tag")
+      (get node-properties "note")
       (get node-properties "product") ; More suited to fulltext ID
       (get node-properties "other_name") ; More suited to "fulltext" ID
       ;(get node-properties "definition") ; Causes problems with IPR nodes

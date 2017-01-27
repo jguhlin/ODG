@@ -162,7 +162,8 @@
   ; Also in go.obo
   ; Need to fix, also not importing many UniPathway XREF's
   ; Probably unable to due to not following the format entirely for OBO
-  (ontologies/import-obo "UPa" "data/misc/unipathway.obo")
+  (when (fs/exists? "data/misc/unipathway.obo")
+    (ontologies/import-obo "UPa" "data/misc/unipathway.obo"))
   
     (let [interproscan-final (atom {})
           do-the-merge       (fn [x y] (merge-with (comp distinct concat) x y))]

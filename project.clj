@@ -33,13 +33,13 @@
          :auto-reload? true
          :auto-refresh? true
          }
-  :java-agents [[co.paralleluniverse/quasar-core "0.7.5"]]
+  :java-agents [[co.paralleluniverse/quasar-core "0.7.7"]]
   :resource-paths ["resources"]
   :dependencies [[org.clojure/clojure "1.8.0"]
-                 [co.paralleluniverse/pulsar "0.7.5"]
-                 [co.paralleluniverse/quasar-core "0.7.5"]
-                 [co.paralleluniverse/quasar-actors "0.7.5"]
-                 [org.neo4j/neo4j "3.1.0-M05"]
+                 [co.paralleluniverse/pulsar "0.7.7"]
+                 [co.paralleluniverse/quasar-core "0.7.7"]
+                 [co.paralleluniverse/quasar-actors "0.7.7"]
+                 [org.neo4j/neo4j "3.1.1"]
                  [clojure-csv/clojure-csv "2.0.2"]
                  [cheshire "5.6.3"]
                  [org.clojure/tools.cli "0.3.1"]
