@@ -187,6 +187,9 @@ var DisplaySettings = React.createClass({
 		obj[x] = y;
 		this.setState(obj, function() { config = this.state; });
 	},
+	
+	// 					<!-- <OnOff id="expression" label="Expression" tooltip="Toggle Expressed nodes and relationships on or off" value={this.state.expression} onChange={this.changeVal} /> -->
+	
 	render: function() {
 		return (
 		<div className="container">
@@ -196,7 +199,6 @@ var DisplaySettings = React.createClass({
 					<h4>Nodes</h4>
 					<OnOff id="goterms" label="Gene Ontology(GO) Terms" tooltip="Toggle Gene Ontology nodes on or off" value={this.state.goterms} onChange={this.changeVal} />
 					<OnOff id="inferred_goterms" label="Inferred GO Terms" tooltip="Toggle Inferred (via BlastP orthologs) Gene Ontology nodes on or off" value={this.state.inferred_goterms} onChange={this.changeVal} />
-					<OnOff id="expression" label="Expression" tooltip="Toggle Expressed nodes and relationships on or off" value={this.state.expression} onChange={this.changeVal} />
 					<OnOff id="pathways" label="Pathways" tooltip="Toggle Pathway nodes and relationships on or off" value={this.state.pathways} onChange={this.changeVal} />
 					<OnOff id="inferred_pathways" label="Inferred Pathways" tooltip="Toggle Inferred (via BlastP orthologs) Pathway nodes and relationships on or off" value={this.state.inferred_pathways} onChange={this.changeVal} />
 				</div>
@@ -498,13 +500,14 @@ var GeneDetail = React.createClass({
 					<td><strong>{k}</strong></td>
 					<td>{v}</td>
 					</tr>)}));
+
+		// <li><a href="#genedetail_expression" data-toggle="tab">Expression</a></li>
 		
 		return (
 			<div>
 				<ul className="nav nav-tabs" role="tablist">
 				  <li className="active"><a href="#genedetail_gene" data-toggle="tab">Gene</a></li>
 				  <li><a href="#genedetail_goterms" data-toggle="tab">GO Terms</a></li>
-				  <li><a href="#genedetail_expression" data-toggle="tab">Expression</a></li>
 				  <li><a href="#genedetail_blastp_hits" data-toggle="tab">BlastP Hits</a></li>
 				  <li><a href="#genedetail_relationships" data-toggle="tab">Relationships</a></li>
 				</ul>
