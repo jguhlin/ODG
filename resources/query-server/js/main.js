@@ -33,7 +33,10 @@ var output = function(data) {
 
 var performSearch = function(evt) {
 	var species = $('#species').val();
+	var label = $("#labels").val();
 	var query = $('#search_query').val();
+	
+	console.dir(label);
 	
 	if (_.isEmpty(species)) {
 		$('#species').selectpicker('setStyle', 'btn-info', 'remove');
@@ -42,28 +45,29 @@ var performSearch = function(evt) {
 		$('#species').selectpicker('setStyle', 'btn-info', 'add');
 		$('#species').selectpicker('setStyle', 'btn-danger', 'remove');
 		
-		$("#graph2").html(query);
-	
-		$.ajax({type: "POST",
+		if (_.isEmpty(label)) {
+			$('#labels').selectpicker('setStyle', 'btn-info', 'remove');
+			$('#labels').selectpicker('setStyle', 'btn-danger', 'add');
+		} else {
+			$('#labels').selectpicker('setStyle', 'btn-info', 'add');
+			$('#labels').selectpicker('setStyle', 'btn-danger', 'remove');
+			
+			$("#graph2").html(query);
+			
+			$.ajax({type: "POST",
 				url: "/search", 
-				data: {"species": species, "query": query},
+				data: {"species": species, "query": query, "label": label},
 				dataType: "json"})
 				.done(function (data) {
-					
-					console.dir(data);
 					
 					$('a[href="#query_results"]').tab('show');
 					
 					query_results_list.loadData(data);
 					_.each(data, function(v, e) {
-				// 	console.dir(v);
-				// 	addNodeToGraph(v.node,v.id,2);
 					});
-			
-			//updateGraph();
-			// cy.resize();
 
 				});
+		}
 	}
 
 	return false;
@@ -108,14 +112,22 @@ var onSelected = function ($e, datum) {
 
 var initSearchBox = function() {
 	var species = $("#species").val();
+	var label = $("#labels").val();
+	
+	var url = "";
+	if (label == "any") {
+		url = '/autocomplete/' + species + '/%QUERY';
+	} else {
+		url = '/autocomplete/' + species + '/' + label + '/%QUERY';
+	}
 	
 	var searchbox = new Bloodhound({
 		  datumTokenizer: Bloodhound.tokenizers.obj.whitespace('value'),
 		  queryTokenizer: Bloodhound.tokenizers.whitespace,
 		  remote: {
-			  url: '/autocomplete/' + species + '/%QUERY',
+			  url: url,
 			  replace: function(url, query) {
-				  			return("/autocomplete/" + $('#species').val() + '/' + query);
+				  			return("/autocomplete/" + $('#species').val() + '/' + $('#labels').val() + "/" + query);
 			  			}
 		  	}
 
@@ -146,6 +158,7 @@ var processConfig = function(data) {
 	
 	initSearchBox();
 	$('#species').change(function() { $("#search_query").val(""); });
+	$('#labels').change(function() { $("#search_query").val(""); });
 	
 	$.each(server_config["query-types"], function(k,v) {
 		$('#query_type')
@@ -204,6 +217,37 @@ var startup = function() {
 	
 	home_page_stats = ReactDOM.render(React.createElement(HomePageStats, {}),
 			document.getElementById('home'));
+	
+	$('#species').on('change', function(){
+		var species = $("#species").val();
+		$('#labels').selectpicker('setStyle', 'btn-info', 'remove');
+		$('#labels').selectpicker('setStyle', 'btn-warning', 'add');
+		$('#labels')
+			.selectpicker({title: 'Loading labels...'})
+			.selectpicker('render');
+		$.ajax({type: "GET",
+			url: "/labels/" + species, 
+			dataType: "json"})
+			.done(function (data) {
+				$('#labels').selectpicker('setStyle', 'btn-warning', 'remove');
+				$('#labels').selectpicker('setStyle', 'btn-info', 'add');
+				
+				$('#labels').empty();
+				$('.selectpicker')
+					.selectpicker({title: 'Choose a Label'})
+					.selectpicker('render');
+				$('#labels').append($('<OPTION>', { value:"any" }).text("Any"));
+				
+				$.each(data, function(k, v) {
+					$('#labels')
+					.append($('<OPTION>', { value:v }).text(v));
+					});
+				$('#labels').selectpicker('refresh');
+
+			});
+		   
+		});
+
 	
 }
 

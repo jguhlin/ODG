@@ -27,7 +27,6 @@
 
 (defn go-terms-biological-processes
   [species query]
-  
   (let [ids (clojure.string/split query #"\s+|,")]
     (map 
       (juxt identity (fn [x] (query/get-biological-process 
@@ -66,17 +65,19 @@
                               :available-media-types ["text/json" "application/json"]
                               :handle-ok (fn [_] (generate-string @server-config))))
   (GET "/autocomplete/:species/:query" [species query] (fn [_] (generate-string (query/autocomplete (batch/convert-name species) query))))
+  (GET "/autocomplete/:species/:label/:query" [species label query] (fn [_] (generate-string (query/autocomplete (batch/convert-name species) label query))))
   (GET "/node/goterms/:node" [node] (fn [_] (generate-string (query/get-goterms (read-string node)))))
   (GET "/node/expression/:node" [node] (fn [_] (generate-string (query/get-expression (read-string node)))))
-       (GET "/node/describe/relationships/:level/:node" [level node] (fn [_] (generate-string (query/describe-relationships node (Integer/parseInt level))))) 
+  (GET "/labels/:species" [species] (fn [_] (generate-string (query/get-labels-for-species species))))
+  (GET "/node/describe/relationships/:level/:node" [level node] (fn [_] (generate-string (query/describe-relationships node (Integer/parseInt level))))) 
   (GET "/node/blastp/:node" [node] (fn [_] (generate-string (query/get-blastp-hits (read-string node)))))
   (GET "/node/:node" [node] (fn [_] (generate-string (query/get-node (read-string node)))))
-  (POST "/search" [species query] (fn [req] 
-                                         (generate-string 
-                                           (query/search (batch/convert-name species) query))))
-       (POST "/query" [type species query] (fn [_] 
-                                             (generate-string
-                                               (handle-query type species query))))
+  (POST "/search" [species query label] (fn [req] 
+                                               (generate-string 
+                                                 (query/search (batch/convert-name species) query label))))
+  (POST "/query" [type species query] (fn [_] 
+                                        (generate-string
+                                          (handle-query type species query))))
   (GET  "/get-species" [] (resource 
                       :available-media-types ["text/json" "application/json"]
                       :handle-ok (generate-string (query/get-species)))))
@@ -111,6 +112,8 @@
   
   (db/connect (get-in config [:global :db_path]) (:memory opts))
   
+  (query/get-all-labels)
+  
   (reset! server-config
         {:species (query/get-species)
          :version-string "ODG - unreleased"
@@ -127,6 +130,8 @@
   []
   
   (db/connect "odg.db" "80%")
+  
+  (query/get-all-labels)
   (reset! server-config
           {:species (query/get-species)
            :version-string "ODG - unreleased"

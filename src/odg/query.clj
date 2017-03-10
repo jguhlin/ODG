@@ -20,11 +20,42 @@
 
 (timbre/refer-timbre)
 
-(defn get-labels-for-species []
-;  MATCH (x:`Arabidopsis thaliana 10`)
-;UNWIND labels(x) AS y
-;RETURN DISTINCT y ORDER BY y
-)
+(def get-all-labels
+  (memoize
+    (fn
+      []
+      (db/query
+        (str 
+          "MATCH (x)
+           UNWIND labels(x) AS y
+           RETURN DISTINCT y ORDER BY y")
+        (into 
+          []
+          (map 
+            (fn [x]
+              (get x "y"))
+            results))))))
+
+(def get-labels-for-species
+  (memoize
+    (fn
+      [species]
+      (if 
+        (or
+          (clojure.string/blank? species)
+          (= "main-ft" species))
+        (get-all-labels)
+        (db/query
+          (str 
+            "MATCH (x:`" species "`)
+             UNWIND labels(x) AS y
+             RETURN DISTINCT y ORDER BY y")
+          (into 
+            []
+            (map 
+              (fn [x]
+                (get x "y"))
+              results)))))))
 
 (defn get-gene-definition-by-species
   []
@@ -95,9 +126,8 @@
        }))))
 
 (defnp autocomplete
-  [index-name text]
-  
-  (db/with-tx db/*db*
+  ([index-name text]
+    (db/with-tx db/*db*
     
     (let [node-index (db/get-node-index index-name)
           query-text (str "id:*" (batch/dbquote text) "*")
@@ -107,7 +137,7 @@
                           (into-array java.lang.String []))]
       
       (into []
-            (for [hit (take 10  (.query node-index query-context))]
+            (for [hit (take 10 (.query node-index query-context))]
               {"id" (.getProperty hit "id")
                "node" (.getId hit)
                "note" (.getProperty hit "note" nil)
@@ -117,6 +147,26 @@
                "end" (.getProperty hit "end" nil)
                "located_on" (.getProperty hit "landmark" nil)
                })))))
+  
+  ([index-name label text]
+    (if (= label "any") 
+      (autocomplete index-name text)
+      (let [match-string (if 
+                       (= "any" label)
+                       ""
+                       (str " MATCH (x:`" label "`)"))]
+        (db/query
+          (str
+            "START x=node:`" index-name "`({q}) "
+             match-string "
+             RETURN x, x.id AS id, x.note AS note, x.gene AS gene, x.species AS species, x.version AS version  ORDER BY x.id LIMIT 500")
+          {"q" (str "id:" (batch/dbquote text) "*")}
+          (into [] (take 10
+                         (map (fn [x]
+                                {"id" (get x "id")
+                                 "node" (.getId (get x "x"))
+                                 })
+                              results))))))))
 
 (defnp get-biological-process
   [index gene]
@@ -169,12 +219,19 @@
                        }
                       ) results))))
 
-(defnp search
-  [index-name text]
+(defn search
+  [index-name text label]
+  
+  (let [match-string (if 
+                       (= "any" label)
+                       ""
+                       (str " MATCH (x:`" label "`)"))]
+    
   (db/query 
     (str
-      "START x=node:`" index-name "`({q}) 
-       RETURN x, x.id AS id, x.note AS note, x.gene AS gene, x.species AS species, x.version AS version LIMIT 100")
+      "START x=node:`" index-name "`({q}) "
+      match-string "
+       RETURN x, x.id AS id, x.note AS note, x.gene AS gene, x.species AS species, x.version AS version  ORDER BY x.id LIMIT 500")
       {"q" (str "id:" (batch/dbquote text) "*")}
       (into [] (map (fn [x]
                       {"id" (get x "id")
@@ -185,7 +242,7 @@
                        "species" (get x "species")
                        "version" (get x "version")
                        })
-                       results))))
+                       results)))))
 
 (defn third
   [x]
