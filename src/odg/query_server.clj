@@ -52,25 +52,31 @@
     "GO Terms: Biological Processes" (go-terms-biological-processes species query)
     ))
 
+(defn get-stats
+  []
+  {:genes (query/get-gene-definition-by-species)
+   })
+
 (defroutes app
   (GET  "/config" [] get-species)
   (GET  "/" [] (resp/redirect "/index.html"))
   (route/resources "/" {:root "query-server"})
+       (GET "/stats" [] (fn [_] (generate-string (get-stats))))
   (ANY  "/server-config" [] (resource
                               :available-media-types ["text/json" "application/json"]
                               :handle-ok (fn [_] (generate-string @server-config))))
   (GET "/autocomplete/:species/:query" [species query] (fn [_] (generate-string (query/autocomplete (batch/convert-name species) query))))
   (GET "/node/goterms/:node" [node] (fn [_] (generate-string (query/get-goterms (read-string node)))))
   (GET "/node/expression/:node" [node] (fn [_] (generate-string (query/get-expression (read-string node)))))
-  (GET "/node/describe/relationships/:level/:node" [level node] (fn [_] (generate-string (query/describe-relationships node (Integer/parseInt level))))) 
+       (GET "/node/describe/relationships/:level/:node" [level node] (fn [_] (generate-string (query/describe-relationships node (Integer/parseInt level))))) 
   (GET "/node/blastp/:node" [node] (fn [_] (generate-string (query/get-blastp-hits (read-string node)))))
   (GET "/node/:node" [node] (fn [_] (generate-string (query/get-node (read-string node)))))
   (POST "/search" [species query] (fn [req] 
-                                    (generate-string 
-                                      (query/search (batch/convert-name species) query))))
-  (POST "/query" [type species query] (fn [_] 
-                                        (generate-string
-                                          (handle-query type species query))))
+                                         (generate-string 
+                                           (query/search (batch/convert-name species) query))))
+       (POST "/query" [type species query] (fn [_] 
+                                             (generate-string
+                                               (handle-query type species query))))
   (GET  "/get-species" [] (resource 
                       :available-media-types ["text/json" "application/json"]
                       :handle-ok (generate-string (query/get-species)))))

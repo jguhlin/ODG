@@ -173,7 +173,8 @@
       (info "Beginning import of: " (:name genome))
       
       (dbh/submit-batch-job
-        {:nodes-create-if-new 
+        ; Update or create, in case we are working on an existing database. Not recommended!
+        {:nodes-updates-or-create  
          [; Create the Root node
             [{:id "Root"} [(batch/dynamic-label "ROOT")] []]
           

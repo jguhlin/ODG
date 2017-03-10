@@ -20,6 +20,24 @@
 
 (timbre/refer-timbre)
 
+(defn get-labels-for-species []
+;  MATCH (x:`Arabidopsis thaliana 10`)
+;UNWIND labels(x) AS y
+;RETURN DISTINCT y ORDER BY y
+)
+
+(defn get-gene-definition-by-species
+  []
+  (db/query
+    "MATCH (n:gene) WHERE EXISTS(n.species) 
+       RETURN DISTINCT n.species, n.version, COUNT(*) AS n ORDER BY n.species, n.version"
+    (into [] (map
+               (fn [x] 
+                 [(str (get x "n.species") " " (get x "n.version"))
+                  (get x "n")
+                  ])
+               results))))
+
 ; Query fn's
 (defn get-species
   []

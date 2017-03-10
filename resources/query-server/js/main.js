@@ -5,6 +5,7 @@ var server_config = new Object();
 var details;
 var query_results_list;
 var details_query;
+var home_page_stats;
 
 var config = {};
 
@@ -200,6 +201,9 @@ var startup = function() {
 
 	query_results_list = ReactDOM.render(React.createElement(QueryResultsTable, {}), 
 			document.getElementById('query_results_list'));
+	
+	home_page_stats = ReactDOM.render(React.createElement(HomePageStats, {}),
+			document.getElementById('home'));
 	
 }
 

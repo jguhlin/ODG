@@ -871,3 +871,55 @@ var QueryResultsTable = React.createClass({
 		);
 	}
 })
+
+
+
+var HomePageStats = React.createClass({
+	getInitialState: function() {
+		return({genes: []});
+	},
+	loadData: function(d) {
+		this.setState({data: d});
+	},
+	componentDidMount: function() {
+		this.setState({}, function() {
+			$.when(
+					$.getJSON("/stats")
+				).done(
+						function(stats) {
+							this.setState(stats);
+							console.dir(this.state);
+						}.bind(this));
+		});
+	},
+	render: function() {
+		
+		console.dir(this.state.genes);
+		console.dir(this.state);
+		
+		var rows = this.state.genes.map(function(d) {
+				return <tr key={d[0]}>
+							<td>{d[0]}</td>
+							<td>{d[1]}</td>
+						</tr>;
+			}.bind(this) );
+
+		dbg = rows;
+		console.log("first row");
+		console.dir(rows[0]);
+		
+		return(<table className="table table-hover table-condensed">
+					<thead>
+						<tr>
+							<th>ID</th>
+							<th>Genes</th>
+						</tr>
+					</thead>
+							
+					<tbody>
+						{rows}
+					</tbody>
+				</table>
+		);
+	}
+})

@@ -862,3 +862,5 @@
 ;  :nodes-create-if-new = add these nodes (and optional rels as 3rd parameter) if this node is not found in the first index provided (or main)
 ;  :nodes-update-or-create = add these nodes or merge these in with existing nodes
 ;  :fields-to-index = Fields that should be added to the indices (if they exist and are not null) TODO
+
+; nodes-create-if-new ---> Not implemented yet
