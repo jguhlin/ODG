@@ -12,10 +12,7 @@ Feel free to ask questions or make suggestions.
 
 ## Usage
 
-Download and run appropriate programs to create the output. Please see run-new.sh to see what types of files are necessary.
-
-## Documentation
-https://github.com/jguhlin/ODG/blob/master/doc/ODG%20User%20Guide.pdf
+Download and run appropriate programs to create the output. Please see the documentation to see what types of files are necessary.
 
 ### All Platforms
 Download and extract one of the available releases.
@@ -51,7 +48,7 @@ To compile the database, once all intervening software has been run you can run 
 To run the query server, run "./odg-query.sh" and point your web browser to http://localhost:6789
 
 ## For More Information
-Please see the user guide, available [[here]]
+Please see the user guide, available [here](https://github.com/jguhlin/ODG/blob/master/doc/ODG%20User%20Guide.pdf)
 
 ## Releases
 
