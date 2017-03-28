@@ -14,6 +14,9 @@ Feel free to ask questions or make suggestions.
 
 Download and run appropriate programs to create the output. Please see run-new.sh to see what types of files are necessary.
 
+## Documentation
+https://github.com/jguhlin/ODG/blob/master/doc/ODG%20User%20Guide.pdf
+
 ### All Platforms
 Download and extract one of the available releases.
 
