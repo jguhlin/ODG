@@ -724,6 +724,9 @@ RETURN
   [config options args]
   (db/connect (get-in config [:global :db_path]) (:memory options))
   
+  ; Args are: 
+  ; input-file-name
+  
   ; Peak detection
   ; TODO: Assign peaks to Group Numbers
   ; TODO: Better peak detection algorithm
