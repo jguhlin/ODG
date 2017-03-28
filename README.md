@@ -65,7 +65,7 @@ This version contains a completed database built with publicly available data an
 
 ### Empty ODG
 This version contains no test data and is ready to be populated with your genomes and data of choice. 
-    ODG.v1.0.0.release.zip
+    [ODG.v1.0.0.release.zip](https://github.com/jguhlin/ODG/releases/download/1.0.0-release/odg-release.zip)
 
 ## License
 Copyright © 2017 Joseph Guhlin
