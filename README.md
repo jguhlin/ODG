@@ -61,11 +61,11 @@ ODG is expected to work with, but not tested on, OpenJDK versions equivalent to 
 
 ### Test-drive ODG
 This version contains a completed database built with publicly available data and compiled information for Arabidopsis thaliana, Glycine max, Medicago truncatula, and Phaseolus vulgaris. It is provided here to provide a way for you to test out the features of ODG and see if it is right for you.
-    ODG.v1.2017_01_15.test_drive.zip  
+    ODG.v1.0.0.test_drive.zip  
 
 ### Empty ODG
 This version contains no test data and is ready to be populated with your genomes and data of choice. 
-    ODG.v1.2017_01_15.zip
+    ODG.v1.0.0.release.zip
 
 ## License
 Copyright © 2017 Joseph Guhlin
