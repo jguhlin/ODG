@@ -52,12 +52,12 @@ Please see the user guide, available [[here]]
 
 ## Releases
 
-ODG is offered as 3 releases, and should work on Windows, Mac, and *nix Systems. *nix systems are preferred, but ODG is developed and tested primarily on Windows.
+ODG is offered as 2 releases, and should work on Windows, Mac, and *nix Systems. *nix systems are preferred, but ODG is developed and tested primarily on Windows. 
 
 ### Requirements
 
 Java 1.8 is required. You likely have Java installed on your system. If not you may download it at http://www.oracle.com/technetwork/java/javase/downloads/ 
-ODG is expected to work with, but not tested on, OpenJDK versions equivalent to Java 1.8
+ODG is expected to work with, but not tested on, OpenJDK versions equivalent to Java 1.8. ODG is memory-intensive, at least 8GB is recommended.
 
 ### Test-drive ODG
 This version contains a completed database built with publicly available data and compiled information for Arabidopsis thaliana, Glycine max, Medicago truncatula, and Phaseolus vulgaris. It is provided here to provide a way for you to test out the features of ODG and see if it is right for you.
