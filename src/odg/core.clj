@@ -33,17 +33,19 @@
 (set! *warn-on-reflection* true)
 
 (timbre/refer-timbre)
-(timbre/set-config! [:appenders :standard-out :enabled?] false)
-(timbre/set-config! [:appenders :spit :enabled?] true)
-(timbre/set-config! [:appenders :spit :async?] true)
-(timbre/set-config! [:shared-appender-config :spit-filename] "log/run.log")
-(timbre/set-config! [:appenders :spit :fn ] 
-                    (fn 
-                      [{:keys [ap-config output]}]
-                      (when-let [filename (:spit-filename ap-config)]
-                        (println output)
-                        (try (spit filename (str output "\n") :append true)
-                          (catch java.io.IOException _)))))
+(timbre/set-config! {:appenders 
+                     {:standard-out 
+                      {:enabled? false}
+                      :spit 
+                      {:enabled? true
+                       :async? true
+                       :spit-filename "log/run.log"
+                       :fn (fn
+                             [{:keys [ap-config output]}]
+                             (when-let [filename (:spit-filename ap-config)]
+                               (println output)
+                               (try (spit filename (str output "\n") :append true)
+                                 (catch java.io.IOException _))))}}})
 
 (timbre/set-level! :debug)
 
