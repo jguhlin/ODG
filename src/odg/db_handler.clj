@@ -164,6 +164,7 @@
       (get node-properties "geneid")
       (get node-properties "gene_id")
       (get node-properties "transcript_id")
+      (get node-properties "protein_id")
       (get node-properties "tss_id")
       (get node-properties "oid")
       (get node-properties "locus_tag")
