@@ -78,6 +78,17 @@
                (fn [x] (str (get x "id") " " (get x "version")))
                results))))
 
+(defn print-species
+  [config options]
+  (db/connect (get-in config [:global :db_path]) (:memory options))
+  (println)
+  (println "List of Species found in database")
+  (println "---------------------------------")
+  (println)
+  (doseq [s (get-species)]
+    (println s))
+  (println "---------------------------------"))
+
 (defnp get-ipr-terms
   [node-id]
   (db/query
@@ -231,8 +242,8 @@
     (str
       "START x=node:`" index-name "`({q}) "
       match-string "
-       RETURN x, x.id AS id, x.note AS note, x.gene AS gene, x.species AS species, x.version AS version  ORDER BY x.id LIMIT 500")
-      {"q" (str "id:" (batch/dbquote text) "*")}
+       RETURN x, x.id AS id, x.note AS note, x.gene AS gene, x.species AS species, x.version AS version ORDER BY x.id LIMIT 500")
+      {"q" (str "id:*" (batch/dbquote text) "*")}
       (into [] (map (fn [x]
                       {"id" (get x "id")
                        "node" (.getId (get x "x"))
@@ -464,7 +475,7 @@
              (= java.lang.Long (class node)) node
              :else (.getId node))]
     (db/query 
-      (str "MATCH (x)-[:PARENT_OF|:HAS_PROTEIN*0..1]-()-[:HAS_ANALYSIS]-()-[:HAS_GOTERM]-(go:GO)
+      (str "MATCH (x)-[:PARENT_OF|:HAS_PROTEIN*0..2]-()-[:HAS_ANALYSIS]-()-[:HAS_GOTERM]-(go:GO)
             WHERE id(x) = {id} 
             RETURN 
             DISTINCT(go) as go, go.name AS name, go.id as id, go.def as def")
@@ -509,7 +520,7 @@
              (= java.lang.Long (class node)) node
              :else (.getId node))]
     (db/query (str "
-  MATCH (x)-[:HAS_PROTEIN|PARENT_OF*0..1]->()-[r:BLASTP_TOP_HIT|:BLASTP_GOOD_HIT|:BLASTP_HIT]-()<-[:HAS_PROTEIN|PARENT_OF*0..1]-(hit)
+  MATCH (x)-[:HAS_PROTEIN|PARENT_OF*0..2]->()-[r:BLASTP_TOP_HIT|:BLASTP_GOOD_HIT|:BLASTP_HIT]-()<-[:HAS_PROTEIN|PARENT_OF*0..2]-(hit)
   WHERE  id(x) = {id}
          AND x <> hit
          AND ( x.species <> hit.species OR (x.species = hit.species AND x.version = hit.version)) 
@@ -1216,7 +1227,10 @@ RETURN
   (db/connect (get-in config [:global :db_path]) (:memory options))
   
   (let [species (:species options) 
-        version (:version options)]
+        version (:version options)
+        version-label (batch/dynamic-label (str species " " version))]
+    
+    (println "Calculating Biological Processes for all Proteins / Genes in " species version)
 
     (let [idx (batch/convert-name species version)
           output (:output-file options)]
@@ -1226,18 +1240,57 @@ RETURN
                        ["Gene" "Biological_Processs"]))
           (.write wrtr "\n")
 
-            (let [results
-                  (db/query
-                      "MATCH (x:gene)-[:PARENT_OF*0..1]-(:INTERPROSCAN_ANALYZED)-[:HAS_ANALYSIS]-()-[:HAS_GOTERM]-(go:biological_process)
-WHERE x:`Medicago truncatula 4.0`
-RETURN DISTINCT x.id, collect(go.name) AS bp"
-                      {}
-                      (into []
-                            (doall
-                              (map
-                                (fn [x]
-                                  [(get x "x.id") (get x "bp")])
-                                results))))]
+          ; TODO:
+          ; Return Gene ID if it's attached...
+          
+            (let [q (str "MATCH (x:`InterProScan Analyzed`)-[:HAS_ANALYSIS]-()-[:HAS_GOTERM]-(go:biological_process)
+                          WHERE x:`" version-label"` AND ( x:Gene OR x:Protein OR x:Annotation )
+                          RETURN DISTINCT x.id, collect(go.name) AS bp")
+                  results (db/query q {}
+                                    (into []
+                                          (doall
+                                            (map
+                                              (fn [x]
+                                                [(get x "x.id") (get x "bp")])
+                                              results))))]
+              ; (println q)
+              (doseq [result results]
+                (.write wrtr (clojure.string/join "\t" [(first result) (clojure.string/join "|" (distinct (into [] (second result))))]))
+                (.write wrtr "\n")
+              ))))))
+
+(defn ipr-terms-all-genes
+  [config options args]
+  (db/connect (get-in config [:global :db_path]) (:memory options))
+  
+  (let [species (:species options) 
+        version (:version options)
+        version-label (batch/dynamic-label (str species " " version))]
+    
+    (println "Calculating IPR Terms members for all Proteins in " species version)
+
+    (let [idx (batch/convert-name species version)
+          output (:output-file options)]
+      (with-open [wrtr (clojure.java.io/writer (str output "_iprterms.tsv"))]
+          (.write wrtr (clojure.string/join 
+                        "\t" 
+                       ["Gene" "IPR_Terms"]))
+          (.write wrtr "\n")
+
+          ; TODO:
+          ; Return Gene ID if it's attached...
+          
+            (let [q (str "MATCH (x:Protein)-[:HAS_ANALYSIS]-()-[:HAS_IPRTERM]-(ipr:IPR_TERM)
+                          WHERE x:`" version-label"`
+                          RETURN DISTINCT x.id, collect(ipr.definition) AS ipr")
+                  results (db/query q {}
+                                    (into []
+                                          (doall
+                                            (map
+                                              (fn [x]
+                                                [(get x "x.id") (get x "ipr")])
+                                              results))))]
+              ; (println q)
               (doseq [result results]
                 (.write wrtr (clojure.string/join "\t" [(first result) (clojure.string/join "|" (distinct (into [] (second result))))]))
                 (.write wrtr "\n")

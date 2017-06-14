@@ -200,6 +200,8 @@
         "ECs-from-GO" (query/ECs-from-GO @config options (rest args))
         "get-biological-processes" (query/biological-processes @config options (rest args))
         "get-biological-processes-all-genes" (query/biological-processes-all-genes @config options (rest args))
+        "get-ipr-terms-all-genes" (query/ipr-terms-all-genes @config options (rest args))
+        "list-species" (query/print-species @config options)
         
         ; Testing Fn's
         "calculate-correlations" (expression/calculate-correlations @config (:species options) (:version options) (nth args 1) (nth args 2))

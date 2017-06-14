@@ -39,7 +39,7 @@
                  [co.paralleluniverse/pulsar "0.7.8"]
                  [co.paralleluniverse/quasar-core "0.7.8"]
                  [co.paralleluniverse/quasar-actors "0.7.8"]
-                 [org.neo4j/neo4j "3.2.0"]
+                 [org.neo4j/neo4j "3.2.1"]
                  [clojure-csv/clojure-csv "2.0.2"]
                  [cheshire "5.7.1"]
                  [org.clojure/tools.cli "0.3.1"]

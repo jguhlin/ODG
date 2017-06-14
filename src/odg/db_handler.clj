@@ -90,7 +90,14 @@
     (catch Exception e
       (println "Caught exception: " (.getMessage e))
       (println e)
-      (.printStackTrace e))))
+      (.printStackTrace e)
+      (println db-handler)
+      (println start)
+      (println end)
+      (println rel-type)
+      (println rel-properties)
+      (System/exit 99)
+      )))
 
 ; Get node-index
 (defn get-node-index
@@ -117,41 +124,51 @@
         #"\s|\." "_"))))
 
 (defn split-id [id]
-  (when id
-    (distinct
-      (map 
-        clojure.string/trim
-        (concat
-          [id]
-          (clojure.string/split id #"\|")
-          (clojure.string/split id #"[\|:]")
-          (clojure.string/split id #"[\s\|:]")
-          (clojure.string/split id #"[\s\|:\.]"))))))
+  (try
+    (when (string? id)
+      (distinct
+        (map 
+          clojure.string/trim
+          (concat
+            [id]
+            (clojure.string/split id #"\|")
+            (clojure.string/split id #"[\|:]")
+            (clojure.string/split id #"[\s\|:]")
+            (clojure.string/split id #"[\s\|:\.]")))))
+    (catch Exception e
+      (do
+        (error e)
+        (println "Error on splitting id " id)
+        (println e)
+        (System/exit 99)))))
 
+; Add support for new vectors...
 (defn possible-ids [current-id]
-  (if (nil? current-id) ""
-    (try
-      (concat 
-        [current-id]
-        (reverse 
-          (sort-by 
-            count
-            (filter 
-              (fn [^String x] (>= (.length x) 4)) ; Length of 4 for unique ID's is probably a safe bet.
-              (for [id (distinct 
-                         (concat 
-                           [current-id] ; Also test the ID we are given
-                           (split-id current-id) 
-                           (map clojure.string/lower-case (split-id current-id))
-                           (map clojure.string/upper-case (split-id current-id))))]
-                id)))))
-      (catch Exception e
-        (do
-          (error e)
-          (error "possible-ids run with" current-id)
-          (println current-id)
-          (println e)
-          (.printStackTrace e))))))
+  (if (vector? current-id)
+    (apply concat (map possible-ids current-id))
+    (if (nil? current-id) ""
+      (try
+        (concat 
+          [current-id]
+          (reverse 
+            (sort-by 
+              count
+              (filter 
+                (fn [^String x] (>= (.length x) 4)) ; Length of 4 for unique ID's is probably a safe bet.
+                (for [id (distinct 
+                           (concat 
+                             [current-id] ; Also test the ID we are given
+                             (split-id current-id) 
+                             (map clojure.string/lower-case (split-id current-id))
+                             (map clojure.string/upper-case (split-id current-id))))]
+                  id)))))
+        (catch Exception e
+          (do
+            (error e)
+            (error "possible-ids run with" current-id)
+            (println current-id)
+            (println e)
+            (.printStackTrace e)))))))
 
 (defn get-ids
   ([node-properties]
@@ -162,8 +179,11 @@
       ; (get node-properties "name") ; Interferes with OBO import...
       (get node-properties "pacid")
       (get node-properties "geneid")
+      (get node-properties "gene")
       (get node-properties "gene_id")
+      (get node-properties "gene-id")
       (get node-properties "transcript_id")
+      (get node-properties "transcript")
       (get node-properties "protein_id")
       (get node-properties "tss_id")
       (get node-properties "oid")
@@ -238,7 +258,7 @@
                 (= 1 (count results)) results 
                 (= 0 (count results)) nil
                 (> 1 (count results)) results)))
-          (catch Exception e (println "Got error for" idx "and" id ":" (.getMessage e)))))))) 
+          (catch Exception e (println "Got error for index query for"  id ":" (.getMessage e) " " e))))))) 
 ; Previously an error was thrown if there was more than 1 result, but it should be handled later
 
 ; HB stands for "handle batch" for certain operations that only happen inside the batch handler
@@ -441,6 +461,8 @@
           (println (:indices data))
           (println (keys data)
           ))))
+    
+    
 
     ; TODO: Add updated nodes updated properties to index with .updateOrAdd
     (doseq [^BatchInserterIndex idx (map (partial get-node-index index-manager) (:indices data))]
@@ -455,27 +477,60 @@
     (doseq [^BatchInserterIndex idx (map (partial get-fulltext-node-index index-manager) (:fulltext-indices data))]
       (doseq [[val node-id] created-nodes-map]
         (.add idx node-id {"id" val}))
+      
         ; .add if exists
         ; note
         ; gene
+        ; description
+        ; gene_symbol
+        ; protein_definition_header
         
       (.flush idx))
     
     (doseq [[rel-type start end properties] (:rels data)]
-      (if
-        (and
-          (or 
-            (and (string? start) (get nodes-map start))
-            (integer? start))
-          (or 
-            (and (string? end) (get nodes-map end))
-            (integer? end)))
-        (create-rel ; if conditions above are true 
-          db 
-          (if (string? start) (get nodes-map start) start)
-          (if (string? end) (get nodes-map end) end)
-          rel-type
-          properties)))
+      
+      (when
+        (not
+          (and 
+            (or (string? start) (integer? start) (vector? end))
+            (or (string? end) (integer? end) (vector? end))))
+          (println "Error with relationship")
+          (println rel-type)
+          (println start)
+          (println end)
+          (println properties)
+          (System/exit 99))
+        
+      
+      (let [start-node (cond
+                         (integer? start) start
+                         (string? start) (get nodes-map start)
+                         (vector? start) (some 
+                                           (fn [x]
+                                             (get nodes-map x))
+                                           start))
+            
+            end-node (cond
+                       (integer? end) end
+                       (string? end) (get nodes-map end)
+                       (vector? end) (some 
+                                         (fn [x]
+                                           (get nodes-map x))
+                                         end))]
+        
+        (when (string? end-node)
+          (println "Still a string!")
+          (println end-node)
+          (println (get nodes-map end-node))
+          (System/exit 99))
+        
+        (if (and start-node end-node)
+          (create-rel ; if conditions above are true
+                      db
+                      start-node
+                      end-node
+                      rel-type
+                      properties))))
 ;        (do ; if conditions above are false
 ;          (if (and (string? start) (not (get nodes-map start)))
 ;           (println start "not found! Start of rel"))
@@ -592,6 +647,8 @@
                    ^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)
                    ]
                
+               (.flush idx)
+               
                (debug "Query called, using " (:index data))
                
                (doall
@@ -599,10 +656,10 @@
                    identity
                    (for [id (:query data)]
                      (if-let [results (query-index idx id)]
-                                        ; :alt-id-fn REMOVED as it is no longer used. Left here because it could be very useful
-                                   ;(if (:alt-id-fn data) ; Remodel so it can support multiple outputs
-                                     ; Only being used in interproscan so far
-                                     ;(query-index idx ((:alt-id-fn data) id))))]
+                         ; :alt-id-fn REMOVED as it is no longer used. Left here because it could be very useful
+                         ;(if (:alt-id-fn data) ; Remodel so it can support multiple outputs
+                         ; Only being used in interproscan so far
+                         ;(query-index idx ((:alt-id-fn data) id))))]
                   [id
                         (if (:filter-fn data)
                           (first (filter (fn [node-id] ((:filter-fn data) 
