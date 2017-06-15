@@ -1296,6 +1296,43 @@ RETURN
                 (.write wrtr "\n")
               ))))))
 
+(defn pfam-domains-all-genes
+  [config options args]
+  (db/connect (get-in config [:global :db_path]) (:memory options))
+  
+  (let [species (:species options) 
+        version (:version options)
+        version-label (batch/dynamic-label (str species " " version))]
+    
+    (println "Exporting PFam_Domains members for all Proteins in " species version)
+
+    (let [idx (batch/convert-name species version)
+          output (:output-file options)]
+      (with-open [wrtr (clojure.java.io/writer (str output "_pfam_domains.tsv"))]
+          (.write wrtr (clojure.string/join 
+                        "\t" 
+                       ["Gene" "PFam_Domains"]))
+          (.write wrtr "\n")
+
+          ; TODO:
+          ; Return Gene ID if it's attached...
+          
+            (let [q (str "MATCH (x:Protein)-[:HAS_ANALYSIS]-(pfam:PFAM) 
+                          WHERE x:`" version-label"`
+                          RETURN DISTINCT x.id, collect(pfam.definition) AS pfam ORDER BY x.id")
+                  results (db/query q {}
+                                    (into []
+                                          (doall
+                                            (map
+                                              (fn [x]
+                                                [(get x "x.id") (get x "pfam")])
+                                              results))))]
+              ; (println q)
+              (doseq [result results]
+                (.write wrtr (clojure.string/join "\t" [(first result) (clojure.string/join "|" (distinct (into [] (second result))))]))
+                (.write wrtr "\n")
+              ))))))
+
 ; GO term summary by replicon
 ;
 ;MATCH (n:Landmark)

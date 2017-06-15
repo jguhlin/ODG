@@ -201,6 +201,7 @@
         "get-biological-processes" (query/biological-processes @config options (rest args))
         "get-biological-processes-all-genes" (query/biological-processes-all-genes @config options (rest args))
         "get-ipr-terms-all-genes" (query/ipr-terms-all-genes @config options (rest args))
+        "get-pfam-domains-all-genes" (query/pfam-domains-all-genes @config options (rest args))
         "list-species" (query/print-species @config options)
         
         ; Testing Fn's
