@@ -77,15 +77,19 @@ ODG is offered as 2 releases, and should work on Windows, Mac, and *nix Systems.
 Java 1.8 is required. You likely have Java installed on your system. If not you may download it at http://www.oracle.com/technetwork/java/javase/downloads/ 
 ODG is expected to work with, but not tested on, OpenJDK versions equivalent to Java 1.8. ODG is memory-intensive, at least 8GB is recommended.
 
+## Releases
+
+You can also [explore our releases here.](https://github.com/jguhlin/ODG/releases/tag/1.1.0)
+
 ### Test-drive ODG
-This version contains a completed database built with publicly available data and compiled information for Arabidopsis thaliana, Glycine max, Medicago truncatula, and Phaseolus vulgaris. It is provided here to provide a way for you to test out the features of ODG and see if it is right for you.
-    ODG.v1.1.0.test_drive.zip  
+This version contains a completed database built with publicly available data and compiled information for Arabidopsis thaliana, Glycine max, Medicago truncatula, and Phaseolus vulgaris. It is provided here to provide a way for you to test out the features of ODG and see if it is right for you.   
 
 ### Empty ODG
 This version contains no test data and is ready to be populated with your genomes and data of choice. ODG is now bundled as an installer. To download the installer, click on this link:
-    [odg_installer_1.1.0.jar](https://github.com/jguhlin/ODG/releases/download/1.1.0/odg_installer_1.1.0.jar)
-    
-    You can also [explore our other releases](https://github.com/jguhlin/ODG/releases/tag/1.1.0)
+
+### Installer ODG
+With version 1.1.0 ODG now comes as an installable file. If you have issues please check your Java version first (see above).
+[odg_installer_1.1.0.jar](https://github.com/jguhlin/ODG/releases/download/1.1.0/odg_installer_1.1.0.jar)
 
 ## License
 Copyright © 2017 Joseph Guhlin
