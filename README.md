@@ -14,6 +14,8 @@ Feel free to ask questions or make suggestions.
 
 Please see the manual for more information.
 
+An (Installation Video)[https://youtu.be/X7RL-pZ4ZTA] is available. It also contains some initial steps to getting the database pipeline prepared.
+
 ## FAQ
 
 Please see the FAQ for additional information if you are having trouble.
