@@ -78,6 +78,13 @@
                (fn [x] (str (get x "id") " " (get x "version")))
                results))))
 
+(defn enumerate-species
+  []
+  ; Database must be already connected
+  (let [species (sort 
+                 (get-species))]
+    (zipmap (range 1 (inc (count species))) species))) 
+
 (defn print-species
   [config options]
   (db/connect (get-in config [:global :db_path]) (:memory options))
@@ -85,8 +92,8 @@
   (println "List of Species found in database")
   (println "---------------------------------")
   (println)
-  (doseq [s (get-species)]
-    (println s))
+  (doseq [s (enumerate-species)]
+    (println (str (key s) ":") (val s)))
   (println "---------------------------------"))
 
 (defnp get-ipr-terms
@@ -1330,6 +1337,95 @@ RETURN
               ; (println q)
               (doseq [result results]
                 (.write wrtr (clojure.string/join "\t" [(first result) (clojure.string/join "|" (distinct (into [] (second result))))]))
+                (.write wrtr "\n")
+              ))))))
+
+(defn annotate-genes-blast-hits
+  [config options args]
+  (db/connect (get-in config [:global :db_path]) (:memory options))
+  
+  (let [species (read-string (:species options)) 
+        version (:version options)
+        
+        species-list (enumerate-species)
+        
+        db-label (if (integer? species)
+                   (batch/dynamic-label (get species-list species))
+                   (batch/dynamic-label (str species " " version)))
+        
+        species-version-label (if (integer? species)
+                                (get species-list species)
+                                (str species " " version))
+        
+        subjects (map read-string (clojure.string/split (:subjects options) #","))
+        
+        subjects-named (into [] (map (fn [x] (get species-list x)) subjects))
+        
+        optional-matches (for [i subjects]
+                           (let [label (batch/dynamic-label (get species-list i))]
+                           (str " OPTIONAL MATCH (x)-[:PARENT_OF*0..2]-(:Protein)-[:BLASTP_TOP_HIT]-(hit" i ":`" label "`) ")))
+        
+        optional-matches-return (for [i subjects]
+                                  (let [label (batch/dynamic-label (get species-list i))]
+                                    (str " COLLECT(DISTINCT(hit" i ".description)) as s" i "_description, "
+                                         " COLLECT(DISTINCT(hit" i ".definition)) as s" i "_definition, "
+                                         " COLLECT(DISTINCT(hit" i ".def)) as s" i "_def, "
+                                         " COLLECT(DISTINCT(hit" i ".note)) as s" i "_note ")))
+        
+        optional-fields (for [i subjects]
+                          [(get species-list i)
+                           [(str "s" i "_description")
+                            (str "s" i "_definition")
+                            (str "s" i "_def")
+                            (str "s" i "_note")]])]
+    
+    
+    
+    (println "Exporting Annotations for members for all Proteins in " species-version-label "as compared to subject set")
+
+    (let [idx (batch/convert-name species version)
+          output (:output-file options)]
+      (with-open [wrtr (clojure.java.io/writer (str output "_annotations_blast.tsv"))]
+        (.write wrtr (clojure.string/join
+                        "\t"
+                        (concat ["Gene"] subjects-named)))
+        (.write wrtr "\n")
+
+          ; TODO:
+          ; Return Gene ID if it's attached...
+          
+            (let [q (str "MATCH (x:`" db-label "`)
+                            WHERE x:gene " (apply str optional-matches) "
+                          RETURN DISTINCT
+                            x.id, " (clojure.string/join ", " optional-matches-return) " ORDER BY x.id")
+                  results (db/query q {}
+                                    (into []
+                                          (doall
+                                            (map
+                                              (fn [x]
+                                                (concat 
+                                                  [(get x "x.id")]
+                                                  (doall
+                                                    (map 
+                                                      (fn [[species query-fields]]
+                                                        (filter
+                                                          identity
+                                                          (apply
+                                                            concat
+                                                            (map 
+                                                              (fn [y]
+                                                                (get x y))
+                                                              query-fields))))
+                                                      optional-fields))))
+                                              results))))]
+              ;(println q)
+              (doseq [result results]
+                (.write wrtr (clojure.string/join "\t" (concat
+                                                         [(first result)]
+                                                         (map 
+                                                           (fn [x] 
+                                                             (clojure.string/join "|" (distinct (into [] x))))
+                                                           (rest result)))))
                 (.write wrtr "\n")
               ))))))
 

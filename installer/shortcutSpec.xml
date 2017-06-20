@@ -1,0 +1,21 @@
+<izpack:shortcuts version="5.0"
+                  xmlns:izpack="http://izpack.org/schema/shortcuts"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://izpack.org/schema/shortcuts http://izpack.org/schema/5.0/izpack-shortcuts-5.0.xsd">
+
+<skipIfNotSupported />
+ 
+<programGroup defaultName="ODG">
+</programGroup>
+
+	<shortcut name="Configuration Server" workingDirectory="$INSTALL_PATH" target="$INSTALL_PATH/start-config.bat" programGroup="true"/>
+	<shortcut name="Query Server" workingDirectory="$INSTALL_PATH" target="$INSTALL_PATH/query-server.bat" programGroup="true"/>
+	<shortcut name="Create BLAST Scripts" workingDirectory="$INSTALL_PATH" target="$INSTALL_PATH/create-blast-scripts.bat" programGroup="true" />
+	<shortcut name="Run BLAST Scripts" workingDirectory="$INSTALL_PATH" target="$INSTALL_PATH/run-blast-scripts.bat" programGroup="true" />
+	
+	<shortcut name="Configuration Server (Unix)" workingDirectory="$INSTALL_PATH" target="$INSTALL_PATH/start-config.sh" programGroup="true" />
+	<shortcut name="Query Server (Unix)" workingDirectory="$INSTALL_PATH" target="$INSTALL_PATH/query-server.sh" programGroup="true" />
+	<shortcut name="Create BLAST Scripts (Unix)" workingDirectory="$INSTALL_PATH" target="$INSTALL_PATH/create-blast-scripts.sh" programGroup="true" />
+	<shortcut name="Run BLAST Scripts (Unix)" workingDirectory="$INSTALL_PATH" target="$INSTALL_PATH/run-blast-scripts.sh" programGroup="true" />
+  
+</izpack:shortcuts>

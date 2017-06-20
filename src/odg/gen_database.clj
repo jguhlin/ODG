@@ -230,9 +230,13 @@
             first-batch (merge-with
                           (comp distinct concat)
                           assembly annotation proteome)
+            
+            ; proteome-batch proteome
             ]
         
         (dbh/submit-batch-job first-batch)
+        (Thread/sleep 20000)
+        ; (dbh/submit-batch-job proteome-batch)
         
         (when
           (and 

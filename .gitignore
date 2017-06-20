@@ -66,3 +66,8 @@ nocopy*
 /*.db
 *.txt
 *.tsv
+*.bat
+!/example-input-files
+!/example-input-files/*
+!/example-input-files/**/*
+*.tmp

@@ -1,4 +1,4 @@
-(defproject odg "1.0.0-beta1"
+(defproject odg "1.1.0"
   :main odg.core
   :aot [odg.core]
   :profiles {

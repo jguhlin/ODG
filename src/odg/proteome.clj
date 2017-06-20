@@ -43,26 +43,25 @@
                   (concat
                     (re-seq #"(\w+):(.+?)\s" line)
                     (re-seq #"(\w+?)=(.+?)(;|$)" line)
-                    (re-seq #"(\w+?)=(.+?)\s" line))))
-            
-            a (drop-last x)
-            y (last x)
-            
-            final-def (second
-                        (re-find
-                         (re-pattern 
-                          (str 
-                           "(" 
-                           (java.util.regex.Pattern/quote (second y))
-                           ".+)$"))
-                          line))
+                    (re-seq #"(\w+?)=(.+?)\s" line))))]
+        
+        (if 
+          (> (count x) 1)
+          (let [a (drop-last x)
+                y (last x)
+                
+                final-def (second
+                            (re-find
+                              (re-pattern 
+                               (str 
+                                "(" 
+                                (java.util.regex.Pattern/quote (second y))
+                                ".+)$"))
+                              line))
             
             ]
         
-        (conj a [(first y) final-def]))))
-
-        
-        
+        (conj a [(first y) final-def]))))))
 
 (defn node-definition
   [labels species version x]

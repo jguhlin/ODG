@@ -99,6 +99,7 @@
           ["-t" "--num-threads" "Number of threads to indicate when generating scripts" :default 4 :flag false]
           ["-o" "--output-file" "Output filename beginning" :default "output"]
           ["-m" "--memory" "Memory, or a percentage, to allocate for the DB -- should be formatted like: 80% or 12GB" :default "80%"]
+          ["--subjects" "--subjects" "For some comparison, specify which species to compare to -- Format such as 1,2,3,4,5 or 4,3,5" :default false :flag false]
           ["--split-jobs" "--split-jobs" "Split jobs into multiples in order to facilitate batch processing" :default 0 :parse-fn #(read-string %)]
           ["--split-jobs-cmd" "--split-jobs-cmd" "Prepend specified command - helps with batching jobs -- may specify [N] to substitute process ID (0 based)" :default nil]
           ["--at-a-time" "--at-a-time" "Run up to N number of jobs at a time using BASH shell's built in mechanism - Not for use with --pbs or --split-jobs" :default nil :parse-fn #(read-string %)]
@@ -203,6 +204,7 @@
         "get-ipr-terms-all-genes" (query/ipr-terms-all-genes @config options (rest args))
         "get-pfam-domains-all-genes" (query/pfam-domains-all-genes @config options (rest args))
         "list-species" (query/print-species @config options)
+        "annotate-species-blast" (query/annotate-genes-blast-hits @config options (rest args)) 
         
         ; Testing Fn's
         "calculate-correlations" (expression/calculate-correlations @config (:species options) (:version options) (nth args 1) (nth args 2))
