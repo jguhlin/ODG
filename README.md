@@ -14,7 +14,7 @@ Feel free to ask questions or make suggestions.
 
 Please see the manual for more information.
 
-An (Installation Video)[https://youtu.be/X7RL-pZ4ZTA] is available. It also contains some initial steps to getting the database pipeline prepared.
+An [Installation Video](https://youtu.be/X7RL-pZ4ZTA) is available. It also contains some initial steps to getting the database pipeline prepared.
 
 ## FAQ
 
@@ -81,7 +81,7 @@ ODG is expected to work with, but not tested on, OpenJDK versions equivalent to 
 
 ## Releases
 
-You can also [explore our releases here.](https://github.com/jguhlin/ODG/releases/tag/1.1.0)
+You can [view our releases here.](https://github.com/jguhlin/ODG/releases/tag/1.1.0)
 
 ### Test-drive ODG
 This version contains a completed database built with publicly available data and compiled information for Arabidopsis thaliana, Glycine max, Medicago truncatula, and Phaseolus vulgaris. It is provided here to provide a way for you to test out the features of ODG and see if it is right for you.   
