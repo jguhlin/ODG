@@ -94,5 +94,5 @@ With version 1.1.0 ODG now comes as an installable file. If you have issues plea
 [odg_installer_1.1.0.jar](https://github.com/jguhlin/ODG/releases/download/1.1.0/odg_installer_1.1.0.jar)
 
 ## License
-Copyright © 2017 Joseph Guhlin
+Copyright © 2017 Joseph Guhlin, Licensed under GPL v3 (see LICENSE file)
 
