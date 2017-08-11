@@ -18,3 +18,9 @@
 *.tsv filter=lfs diff=lfs merge=lfs -text
 *.jar filter=lfs diff=lfs merge=lfs -text
 *.zip filter=lfs diff=lfs merge=lfs -text
+Videos/*	linguist-vendored
+example-input-files/*	linguist-vendored
+installer/*	linguist-vendored
+release_Scripts/*	linguist-vendored
+resources/*	linguist-vendored
+scripts/*	linguist-vendored
