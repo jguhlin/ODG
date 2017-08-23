@@ -7,8 +7,8 @@
   :description "FIXME: write description"
   :url "http://example.com/FIXME"
   :jvm-opts ^:replace [
-                       "-Xms2G"
-                       "-Xmx4G"
+                       "-Xms256M"
+                       "-Xmx6G"
              ;"-XX:MaxDirectMemorySize=1G" ; May have caused a huge slowdown? At least in eclipse...
              ;"-XX:+UseParallelGC"
                        "-XX:+UseConcMarkSweepGC"
