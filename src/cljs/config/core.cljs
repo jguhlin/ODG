@@ -7,8 +7,8 @@
             [markdown.core :refer [md->html]]
             [ajax.core :refer [GET POST]]
             [cognitect.transit :as t]
-            [projh.ajax :refer [load-interceptors!]]
-            [projh.handlers]
+            [odg.config.ajax :refer [load-interceptors!]]
+            [odg.config.handlers]
             [keybind.core :as key]
             [projh.subscriptions])
   (:import goog.History))

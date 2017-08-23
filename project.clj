@@ -87,6 +87,7 @@
                  [ring-webjars "0.2.0"]
                  [ring/ring-defaults "0.3.1"]
                  [secretary "1.2.3"]
+                 [cprop "0.1.11"]
                  [selmer "1.11.0"]]
   
   :cljsbuild {

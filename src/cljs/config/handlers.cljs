@@ -1,5 +1,5 @@
 (ns odb.db.core.handlers
-  (:require [projh.db :as db]
+  (:require [odg.config.db :as db]
             [re-frame.core :refer [dispatch reg-event-db]]))
 
 (reg-event-db
