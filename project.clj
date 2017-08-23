@@ -8,9 +8,9 @@
   :url "http://example.com/FIXME"
   :jvm-opts ^:replace [
                        "-Xms256M"
-                       "-Xmx6G"
-             ;"-XX:MaxDirectMemorySize=1G" ; May have caused a huge slowdown? At least in eclipse...
-             ;"-XX:+UseParallelGC"
+                       "-Xmx4G"
+                       ;"-XX:MaxDirectMemorySize=1G" ; May have caused a huge slowdown? At least in eclipse...
+                       ;"-XX:+UseParallelGC"
                        "-XX:+UseConcMarkSweepGC"
                        "-XX:+UseCondCardMark"
                        "-XX:+UseBiasedLocking"
@@ -18,7 +18,7 @@
                        "-XX:+UseCompressedOops"
                        "-XX:+UseFastAccessorMethods"
                        "-XX:+DoEscapeAnalysis"
-                       "-Xss8M"
+             ;          "-Xss8M"
                        "-d64"
                        "-server"
                        "-Dco.paralleluniverse.fibers.detectRunawayFibers=false"

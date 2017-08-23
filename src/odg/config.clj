@@ -1,4 +1,5 @@
 (ns odg.config
+  "Runs the configuration server"
   (:require
             [cheshire.core :refer :all]
             [me.raynes.fs :as fs]
@@ -8,7 +9,9 @@
             [compojure.core :refer [defroutes ANY GET POST]]
             [compojure.route :as route]
             [ring.util.response :as resp]
-            ))
+            [odg.web.layout :as layout]
+            [clojure.java.io :as io]))
+            
 
 ; command for interproscan 
 ; interproscan.sh -i test_proteins.fasta -f tsv --iprlookup --goterms --pathways
@@ -83,8 +86,8 @@
       (.toString file)
       (re-pattern (java.util.regex.Pattern/quote (str (.toString fs/*cwd*) java.io.File/separator)))
       "")
-    ""
-    ))
+    ""))
+    
 
 (defn find-mirbase
   [dir]
@@ -135,8 +138,8 @@
        :computed-name (str abbreviation " " version)
        :description ""
        :tags ""
-       :key (fs/base-name dir)
-       })))
+       :key (fs/base-name dir)})))
+       
 
 (defn guess-genomes
   [dir]
@@ -177,10 +180,10 @@
           :PO (find-po "data")
           :MI (find-mi "data")
           :ENZYME (find-ENZYME "data")
-          :DOMINE (find-DOMINE "data")
-          }
-         :genomes (guess-genomes "data")
-         }))))
+          :DOMINE (find-DOMINE "data")}
+          
+         :genomes (guess-genomes "data")}))))
+         
 
 (defn save
   [data]
@@ -206,7 +209,7 @@
         #(fs/directory? (str "data/" %))
         (map 
           #(.getName %) 
-            (fs/list-dir dir))))))
+           (fs/list-dir dir))))))
 
 (defresource get-config
   :available-media-types ["text/json" "application/json"]
@@ -217,21 +220,21 @@
                       :available-media-types ["text/json" "application/json"]
                       :handle-ok (generate-string @is-new?)))
   (ANY  "/best-guess" [] (resource 
-               :available-media-types ["text/json" "application/json"]
-               :handle-ok (fn [_] (generate-string (best-guess "data")))))
+                          :available-media-types ["text/json" "application/json"]
+                          :handle-ok (fn [_] (generate-string (best-guess "data")))))
   (ANY  "/data" [] (resource
-               :available-media-types ["text/json" "application/json"]
-               :handle-ok (fn [_] (generate-string (get-files "data")))))
+                    :available-media-types ["text/json" "application/json"]
+                    :handle-ok (fn [_] (generate-string (get-files "data")))))
   (ANY  "/species" [] (resource
                         :available-media-types ["text/json" "application/json"]
                         :handle-ok (generate-string (:species @config))))
   (GET  "/config" [] get-config)
-  (GET  "/" [] (resp/redirect "/index.html"))
+  (GET  "/" [] (resp/redirect "/ui"))
   (POST "/save" [data] (fn [a] (save data)))
   (POST "/save_and_quit" [data] (fn [a] (save data) (Thread/sleep 5000) (System/exit 0)))
-  (route/resources "/" {:root "config"})
-  )
-
+  (GET  "/ui" [] (layout/render "ui.html"))
+  (route/resources "/" {:root "config"}))
+  
 (defn wrap-exception [f]
   (fn [request]
     (try (f request)
@@ -247,6 +250,8 @@
 (defn start-server 
   [opts args]
   
+  (layout/set-resource-path "config/templates")
+  
   (reset! config-file (:config opts))
   
   (load-existing @config-file)
@@ -259,7 +264,6 @@
   []
   
   (def opts {:config "config.json"})
-  
+  (layout/set-resource-path "config/templates")
   (reset! config-file (:config opts))
-  
   (load-existing @config-file))

@@ -27,8 +27,7 @@
             [odg.biogrid :as biogrid]
             [biotools.psimitab25 :as psimitab]
             [odg.variants :as variants]
-            [odg.query-server :as query-server]
-            ))
+            [odg.query-server :as query-server]))
 
 (set! *warn-on-reflection* true)
 
@@ -104,8 +103,8 @@
           ["--split-jobs-cmd" "--split-jobs-cmd" "Prepend specified command - helps with batching jobs -- may specify [N] to substitute process ID (0 based)" :default nil]
           ["--at-a-time" "--at-a-time" "Run up to N number of jobs at a time using BASH shell's built in mechanism - Not for use with --pbs or --split-jobs" :default nil :parse-fn #(read-string %)]
           ["--pbs" "--pbs" "Set to run in PBS environment, use with --split-jobs" :default false :flag true]
-          ["--header" "--header" "Set header for generated scripts. Default: scripts/pbs/header.txt when --pbs is set, otherwise nil" :default nil]
-          )]
+          ["--header" "--header" "Set header for generated scripts. Default: scripts/pbs/header.txt when --pbs is set, otherwise nil" :default nil])]
+          
     (when (:help options)
       (-help banner))
 
@@ -129,8 +128,8 @@
 
         "import-fasta" (do
                          (if (nil? (:species options)) (-help banner "Species is blank. Define with -s option."))
-                         (if (nil? (:version options)) (-help banner "Version is blank. Define with -v option."))
-			);(assembly/import-fasta-cli @config options (rest args)))
+                         (if (nil? (:version options)) (-help banner "Version is blank. Define with -v option.")))
+      ;(assembly/import-fasta-cli @config options (rest args)))
         "anchor-blast" (do
                          ; Explain that this is blastn only!
                          (if (not (:species options)) (-help banner "Species is blank. Define with -s option."))
@@ -153,8 +152,8 @@
                           (blast/import-blastp-cli @config options (rest args))
         "import-fpkm-values" (do
                                (if (not (:species options)) (-help banner "Species is blank. Define with -s option."))
-                               (if (not (:version options)) (-help banner "Version is blank. Define with -v option."))
-				)
+                               (if (not (:version options)) (-help banner "Version is blank. Define with -v option.")))
+        
 ;                               (expression/parse-cli @config options (rest args)))
 
         ; TYPE no longer needed for import-obo
