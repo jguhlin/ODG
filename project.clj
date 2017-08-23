@@ -7,8 +7,8 @@
   :description "FIXME: write description"
   :url "http://example.com/FIXME"
   :jvm-opts ^:replace [
-                       "-Xms6G"
-                       "-Xmx6G"
+                       "-Xms2G"
+                       "-Xmx4G"
              ;"-XX:MaxDirectMemorySize=1G" ; May have caused a huge slowdown? At least in eclipse...
              ;"-XX:+UseParallelGC"
                        "-XX:+UseConcMarkSweepGC"
@@ -18,7 +18,7 @@
                        "-XX:+UseCompressedOops"
                        "-XX:+UseFastAccessorMethods"
                        "-XX:+DoEscapeAnalysis"
-                       "-Xss64M"
+                       "-Xss8M"
                        "-d64"
                        "-server"
                        "-Dco.paralleluniverse.fibers.detectRunawayFibers=false"
@@ -38,12 +38,12 @@
          :auto-reload? true
          :auto-refresh? true}
          
-  :java-agents [[co.paralleluniverse/quasar-core "0.7.9"]]
+  :java-agents [[co.paralleluniverse/quasar-core "0.7.8"]]
   :resource-paths ["resources"]
   :dependencies [[org.clojure/clojure "1.8.0"]
-                 [co.paralleluniverse/pulsar "0.7.9"]
-                 [co.paralleluniverse/quasar-core "0.7.9"]
-                 [co.paralleluniverse/quasar-actors "0.7.9"]
+                 [co.paralleluniverse/pulsar "0.7.8"]
+                 [co.paralleluniverse/quasar-core "0.7.8"]
+                 [co.paralleluniverse/quasar-actors "0.7.8"]
                  [org.neo4j/neo4j "3.2.3"]
                  [clojure-csv/clojure-csv "2.0.2"]
                  [cheshire "5.8.0"]
@@ -68,7 +68,7 @@
                  [org.clojure/core.memoize "0.5.9"]
                  [clj-time "0.14.0"]
                  [cljs-ajax "0.6.0"]
-                 [markdown-clj "0.9.99"]
+                 [markdown-clj "1.0.0"]
                  [keybind "2.1.0"]
                  [metosin/compojure-api "1.1.11"]
                  [metosin/muuntaja "0.3.2"]
@@ -97,7 +97,7 @@
                         :compiler {:main "odg.config.core"
                                    :asset-path "js/out"
                                    :output-to "resources/config/js/newui.js"
-                                   :output-dir "resources/config/js/newui" }}]})
+                                   :output-dir "resources/config/js/newui"}}]})
                
                  
 
