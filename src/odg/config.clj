@@ -10,6 +10,8 @@
             [compojure.route :as route]
             [ring.util.response :as resp]
             [odg.web.layout :as layout]
+            [odg.web.middleware :as middleware]
+            [ring.middleware.webjars :refer [wrap-webjars]]
             [clojure.java.io :as io]))
             
 
@@ -244,6 +246,8 @@
 
 (def handler 
   (-> app 
+      wrap-webjars
+      (middleware/wrap-context)
       (wrap-params)
       (wrap-exception)))  
 
@@ -258,12 +262,25 @@
  
   (println "Server starting on port 33333")
   (println "Visit http://localhost:33333 in your web browser to continue")
-  (run-jetty #'handler {:port 33333}))
+  (run-jetty #'handler {:port 33333 :daemon? true}))
+
+(defn repl-dev-init
+  "Used for starting the config server from the REPL"
+  []
+  
+  (def opts {:config "config.json"})
+  (layout/set-resource-path "config/templates")
+  (reset! config-file (:config opts))
+  (load-existing @config-file)
+  (defonce server (run-jetty #'handler {:port 33333 :join? false})))
+
 
 (defn dev-init
+  "No longer used, previously used for ring load server"
   []
   
   (def opts {:config "config.json"})
   (layout/set-resource-path "config/templates")
   (reset! config-file (:config opts))
   (load-existing @config-file))
+  

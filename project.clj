@@ -38,12 +38,12 @@
          :auto-reload? true
          :auto-refresh? true}
          
-  :java-agents [[co.paralleluniverse/quasar-core "0.7.8"]]
+  :java-agents [[co.paralleluniverse/quasar-core "0.7.9"]]
   :resource-paths ["resources"]
   :dependencies [[org.clojure/clojure "1.8.0"]
-                 [co.paralleluniverse/pulsar "0.7.8"]
-                 [co.paralleluniverse/quasar-core "0.7.8"]
-                 [co.paralleluniverse/quasar-actors "0.7.8"]
+                 [co.paralleluniverse/pulsar "0.7.9"]
+                 [co.paralleluniverse/quasar-core "0.7.9"]
+;                 [co.paralleluniverse/quasar-actors "0.7.9"]
                  [org.neo4j/neo4j "3.2.3"]
                  [clojure-csv/clojure-csv "2.0.2"]
                  [cheshire "5.8.0"]
@@ -63,11 +63,14 @@
                  [ring/ring-core "1.6.2"] ; :exclusions [org.clojure/tools.reader]]
                  [ring/ring-jetty-adapter "1.6.2"]
                  [ring/ring-json "0.4.0"]
+                 [ring-webjars "0.2.0"]
+                 [ring/ring-defaults "0.3.1"]
                  [liberator "0.15.1"]
+                 [binaryage/devtools "0.9.4"]
                  [compojure "1.6.0"] 
                  [org.clojure/core.memoize "0.5.9"]
                  [clj-time "0.14.0"]
-                 [cljs-ajax "0.6.0"]
+                 [cljs-ajax "0.7.0"]
                  [markdown-clj "1.0.0"]
                  [keybind "2.1.0"]
                  [metosin/compojure-api "1.1.11"]
@@ -84,10 +87,8 @@
                  [re-frame "0.10.1"]
                  [reagent "0.7.0"]
                  [reagent-utils "0.2.1"]
-                 [ring-webjars "0.2.0"]
-                 [ring/ring-defaults "0.3.1"]
                  [secretary "1.2.3"]
-                 [cprop "0.1.11"]
+;                 [cprop "0.1.11"]
                  [selmer "1.11.0"]]
   
   :cljsbuild {
@@ -96,7 +97,7 @@
                         :source-paths ["src/cljs/config/"]
                         :figwheel true
                         :compiler {:main "odg.config.core"
-                                   :asset-path "js/out"
+                                   :asset-path "js/newui/"
                                    :output-to "resources/config/js/newui.js"
                                    :output-dir "resources/config/js/newui"}}]})
                
