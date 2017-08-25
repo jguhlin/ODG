@@ -1,8 +1,6 @@
 (defproject odg "1.1.0"
   :main odg.core
   :aot [odg.core]
-  :profiles {
-             :uberjar { :aot :all}}
   
   :description "FIXME: write description"
   :url "http://example.com/FIXME"
@@ -90,16 +88,43 @@
                  [secretary "1.2.3"]
 ;                 [cprop "0.1.11"]
                  [selmer "1.11.0"]]
+
+  :repl-options {  ;; If nREPL takes too long to load it may timeout,
+                   ;; increase this to wait longer before timing out.
+                   ;; Defaults to 30000 (30 seconds)
+                 :timeout 120000}
+
+  :figwheel {:nrepl-port 7002
+             :css-dirs ["resources/config/css" "resources/query/css"]
+             :nrepl-middleware [cemerick.piggieback/wrap-cljs-repl]}
   
-  :cljsbuild {
-              :builds [ 
-                       {:id "config"
-                        :source-paths ["src/cljs/config/"]
-                        :figwheel true
-                        :compiler {:main "odg.config.core"
-                                   :asset-path "js/newui/"
-                                   :output-to "resources/config/js/newui.js"
-                                   :output-dir "resources/config/js/newui"}}]})
+  :profiles 
+    {:dev [:project/dev]
+ 
+     :project/dev
+      {:dependencies [[prone "1.1.4"]
+                      [ring/ring-mock "0.3.1"]
+                      [ring/ring-devel "1.6.2"]
+                      [pjstadig/humane-test-output "0.8.2"]
+                      [binaryage/devtools "0.9.4"]
+                      [figwheel-sidecar "0.5.11"]
+                      [com.cemerick/piggieback "0.2.2"]]
+       :plugins [[com.jakemccrary/lein-test-refresh "0.19.0"]]
+       :repl-options {:init-ns user}
+       :injections [(require 'pjstadig.humane-test-output
+                               (pjstadig.humane-test-output/activate!))]
+       :cljsbuild {:builds 
+                   {:config-dev
+                    {:id "config"
+                     :source-paths ["src/cljs/config/"]
+                     :figwheel {:on-jsload "odg.config.core/mount-components"}
+                     :compiler {:main "odg.config.core"
+                                :asset-path "js/newui/"
+                                :source-map true
+                                :optimizations :none
+                                :output-to "resources/config/js/newui.js"
+                                :output-dir "resources/config/js/newui"
+                                :pretty-print true}}}}}})
                
                  
 

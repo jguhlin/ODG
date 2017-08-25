@@ -6,5 +6,5 @@ document.write('<script src="js/newui//cljs_deps.js"></script>');
 document.write('<script>if (typeof goog == "undefined") console.warn("ClojureScript could not load :main, did you forget to specify :asset-path?");</script>');
 document.write('<script>goog.require("process.env");</script>');
 
-document.write("<script>if (typeof goog != \"undefined\") { goog.require(\"figwheel.connect.build_config\"); }</script>");
+document.write("<script>if (typeof goog != \"undefined\") { goog.require(\"figwheel.connect.build_config_dev\"); }</script>");
 document.write('<script>goog.require("odg.config.core");</script>');

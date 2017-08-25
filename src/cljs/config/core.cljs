@@ -25,7 +25,7 @@
 
 (defn navbar []
   (r/with-let [collapsed? (r/atom false)]
-    [:nav.navbar.navbar-light.bg-primary.navbar-toggleable-md
+    [:nav.navbar.navbar-inverse.navbar-fixed-top
      [:button.navbar-toggler.hidden-sm-up
       {:on-click #(swap! collapsed? not)} "☰"]
      [:div.collapse.navbar-collapse.navbar-toggleable-xs
@@ -98,8 +98,4 @@
   (mount-keybindings)
   (mount-components))
 
-(enable-console-print!)
-
-(devtools/install!)
-
-(init!)
+(defonce start (fn [] (devtools/install!) (enable-console-print!) (init!)))

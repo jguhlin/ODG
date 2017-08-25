@@ -12,8 +12,28 @@
             [odg.web.layout :as layout]
             [odg.web.middleware :as middleware]
             [ring.middleware.webjars :refer [wrap-webjars]]
-            [clojure.java.io :as io]))
-            
+            [figwheel-sidecar.repl-api :as ra]
+            [clojure.java.io :as io]
+            [mount.core :as mount]))
+
+(defn start []
+  (mount/start-without #'projh.core/repl-server))
+
+(defn stop []
+  (mount/stop-except #'projh.core/repl-server))
+
+(defn restart []
+  (stop)
+  (start))
+
+(defn start-fw []
+  (ra/start-figwheel!))
+
+(defn stop-fw []
+  (ra/stop-figwheel!))
+
+(defn cljs []
+  (ra/cljs-repl))
 
 ; command for interproscan 
 ; interproscan.sh -i test_proteins.fasta -f tsv --iprlookup --goterms --pathways
@@ -272,7 +292,7 @@
   (layout/set-resource-path "config/templates")
   (reset! config-file (:config opts))
   (load-existing @config-file)
-  (defonce server (run-jetty #'handler {:port 33333 :join? false})))
+  (def server (run-jetty #'handler {:port 33334 :join? false})))
 
 
 (defn dev-init

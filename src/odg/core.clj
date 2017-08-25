@@ -157,16 +157,16 @@
 ;                               (expression/parse-cli @config options (rest args)))
 
         ; TYPE no longer needed for import-obo
-        "import-obo" (do
-                       ; OBO v1.2 format, usually from: http://www.geneontology.org/GO.downloads.ontology.shtml
-                       (if (not (:note options)) (-help banner "Note is required for OBO import."))
-                       (if (not (:type options)) (-help banner "Type must be specified for OBO import."))
-                       (time (ontologies/import-cli @config options (rest args))))
-        "import-ipscan" (do
-                          ; Interproscan rc5 format
-                          (if (not (:species options)) (-help banner "Species is blank. Define with -s option."))
-                          (if (not (:version options)) (-help banner "Version is blank. Define with -v option."))
-                          (interproscan/import-results @config options (rest args)))
+        "import-obo"     (do
+                           ; OBO v1.2 format, usually from: http://www.geneontology.org/GO.downloads.ontology.shtml
+                           (if (not (:note options)) (-help banner "Note is required for OBO import."))
+                           (if (not (:type options)) (-help banner "Type must be specified for OBO import."))
+                           (time (ontologies/import-cli @config options (rest args))))
+        "import-ipscan"  (do
+                           ; Interproscan rc5 format
+                           (if (not (:species options)) (-help banner "Species is blank. Define with -s option."))
+                           (if (not (:version options)) (-help banner "Version is blank. Define with -v option."))
+                           (interproscan/import-results @config options (rest args)))
         "import-pathway" (do
                            ; Import pathways, need species, version, and pathway file. Best if done post-GO import
                            (if (not (:species options)) (-help banner "Species is blank. Define with -s option."))
@@ -178,11 +178,12 @@
                            (if (not (:version options)) (-help banner "Version is blank. Define with -v option."))
                            (miscellaneous/targetp @config options (rest args)))
         "create-next-to" (annotation/create-gene-neighbors @config options (rest args))
-        "import-enzyme" (enzyme/import-cli @config options (rest args))
+        "import-enzyme"  (enzyme/import-cli @config options (rest args))
         "import-uniprot" (uniprot/parse @config options (rest args))
-        "create-jobs" (external-manager/output-commands @config options (rest args))
-        "config" (config/start-server options (rest args))
-        "query-server" (query-server/start-server @config options (rest args))
+        "create-jobs"    (external-manager/output-commands @config options (rest args))
+        "config"         (config/start-server options (rest args))
+        "config-server"  (config/start-server options (rest args))
+        "query-server"   (query-server/start-server @config options (rest args))
         "create-scripts" (scripts/create @config options (rest args))
         "import-po-associations" (ontologies/associations-cli @config options (rest args))
         "import-biogrid" (biogrid/import-cli @config options (rest args))
