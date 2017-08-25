@@ -93,6 +93,16 @@ This version contains no test data and is ready to be populated with your genome
 With version 1.1.0 ODG now comes as an installable file. If you have issues please check your Java version first (see above).
 [odg_installer_1.1.0.jar](https://github.com/jguhlin/ODG/releases/download/1.1.0/odg_installer_1.1.0.jar)
 
+# Accessing ODG's Generated Database Programmatically
+
+To access ODG's database directly, you must use a Neo4j library/package for your chosen language. This will allow you to access Neo4j via it's REST API. To do this you must mount the database using Neo4j's database software directly. I've written up [tutorial on doing this](josephguhlin.com/odg-neo4j-web-console/amp). 
+
+Tutorials for accessing ODG's database from R is coming soon.
+
+# Future
+
+I am currently updating ODG's web interfaces to be more responsive and malleable. This is happening in a separate branch at this time.
+
 ## License
-Copyright © 2017 Joseph Guhlin, Licensed under GPL v3 (see LICENSE file)
+Copyright ï¿½ 2017 Joseph Guhlin, Licensed under GPL v3 (see LICENSE file)
 
