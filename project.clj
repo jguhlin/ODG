@@ -89,7 +89,8 @@
   
   :source-paths ["src/clj" "src/cljc"]
   :test-paths   ["test/clj"]
-  :resource-paths ["resources"]
+  :resource-paths ["resources" "target"]
+  :target-path "target/%s/"
   
   :repl-options {  ;; If nREPL takes too long to load it may timeout,
                    ;; increase this to wait longer before timing out.
@@ -119,11 +120,11 @@
                      :source-paths ["src/cljs/config/" "src/cljc"]
                      :figwheel {:on-jsload "odg.config.core/mount-components"}
                      :compiler {:main "odg.config.startup"
-                                :asset-path "js/newui/"
+                                :asset-path "js/out/"
                                 :source-map true
                                 :optimizations :none
-                                :output-to "resources/config/js/newui.js"
-                                :output-dir "resources/config/js/newui"
+                                :output-to  "target/cljsbuild/config/js/newui.js"
+                                :output-dir "target/cljsbuild/config/js/out"
                                 :pretty-print true}}}}}})
                
                  

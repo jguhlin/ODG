@@ -24,11 +24,35 @@
 
 
 (defn navbar []
-    [:nav.navbar.navbar-light.bg-primary.navbar-toggleable-md
+    [:nav.navbar.navbar-inverse.bg-inverse.navbar-toggleable-md.sticky-top
       [:a.navbar-brand {:href "#/"} "ODG"]
-      [:ul.nav.navbar-nav
-       [nav-link "#/" "Genomes" :projects]
-       [nav-link "#/about" "About" :about]]])
+      [:ul.nav.navbar-nav.mr-auto
+       [nav-link "#/" "Introduction" :projects]
+       [nav-link "#/about" "Global" :about]
+       [nav-link "#/genomes" "Genomes" :genomes]]
+      [:ul.nav.navbar-nav.navbar-right.btn-group.btn-group-sm
+       [:li
+        [:button.btn.btn-sm.btn-info.navbar-btn "Save"]]
+       [:li 
+        [:button.btn.btn-sm.btn-info.navbar-btn "Save & Quit"]]]])
+
+(defn introduction []
+  [:div.row
+   [:div.col-md-12
+    [:h1 "Introduction"]
+    [:p.lead "This is the configuration screen for the Omics Database Generator. You may revisit this configuration wizard in the future to make additional changes."]]])
+
+(defn info-configuration-loading []
+   [:div.alert.alert-info {:role "alert"}
+    [:h4 [:strong "Configuration Loading "]
+     [:img {:src "/img/ajax-loader.gif"}]]
+    [:p "This may take some time, especially if this is the initial configuration."]])
+  
+(defn danger-remember-to-save []
+  [:div.alert.alert-danger.alert-dismissible.fade.show {:role "danger"}
+   [:button.close {:type "button" :data-dismiss "alert" :aria-label "Close"} "x"]
+   [:h4 [:strong "Remember to Save"]]
+   [:p "Use the buttons above to save periodically."]])
 
 (defn about-page []
   [:div.container
@@ -47,6 +71,9 @@
   [:div
    [navbar]
    [(pages @(rf/subscribe [:page]))]
+   [introduction]
+   [info-configuration-loading]
+   [danger-remember-to-save]
    [:div "Hi"]])
 
 

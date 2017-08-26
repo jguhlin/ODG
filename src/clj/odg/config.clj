@@ -255,6 +255,7 @@
   (POST "/save" [data] (fn [a] (save data)))
   (POST "/save_and_quit" [data] (fn [a] (save data) (Thread/sleep 5000) (System/exit 0)))
   (GET  "/ui" [] (layout/render "ui.html"))
+  (route/resources "/js/" {:root "cljsbuild/config/js"})
   (route/resources "/" {:root "config"}))
   
 (defn wrap-exception [f]

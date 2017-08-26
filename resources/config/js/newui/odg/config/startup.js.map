@@ -1,1 +1,0 @@
-{"version":3,"file":"\/G:\/Development\/odg\/resources\/config\/js\/newui\/odg\/config\/startup.js","sources":["startup.cljs?rel=1503762735780"],"lineCount":11,"mappings":";AAAA;;;;AAIA,AAACA;AACD,AAACC;AACD,AAACC;AACD,YAAA,ZAACC","names":["devtools.core\/install!","cljs.core\/enable-console-print!","odg.config.core\/init!","js\/console.log"]}
