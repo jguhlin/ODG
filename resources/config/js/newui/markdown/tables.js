@@ -3,15 +3,15 @@ goog.provide('markdown.tables');
 goog.require('cljs.core');
 goog.require('clojure.string');
 markdown.tables.parse_table_row = (function markdown$tables$parse_table_row(text){
-return cljs.core.map.call(null,(function (p1__32436_SHARP_){
-return cljs.core.identity.call(null,new cljs.core.PersistentArrayMap(null, 1, [new cljs.core.Keyword(null,"text","text",-1790561697),p1__32436_SHARP_], null));
-}),cljs.core.map.call(null,clojure.string.trim,(function (p1__32435_SHARP_){
-return clojure.string.split.call(null,p1__32435_SHARP_,/\|/);
-}).call(null,clojure.string.trim.call(null,(function (p1__32434_SHARP_){
-if(cljs.core._EQ_.call(null,cljs.core.first.call(null,p1__32434_SHARP_),"|")){
-return cljs.core.apply.call(null,cljs.core.str,cljs.core.rest.call(null,p1__32434_SHARP_));
+return cljs.core.map.call(null,(function (p1__35044_SHARP_){
+return cljs.core.identity.call(null,new cljs.core.PersistentArrayMap(null, 1, [new cljs.core.Keyword(null,"text","text",-1790561697),p1__35044_SHARP_], null));
+}),cljs.core.map.call(null,clojure.string.trim,(function (p1__35043_SHARP_){
+return clojure.string.split.call(null,p1__35043_SHARP_,/\|/);
+}).call(null,clojure.string.trim.call(null,(function (p1__35042_SHARP_){
+if(cljs.core._EQ_.call(null,cljs.core.first.call(null,p1__35042_SHARP_),"|")){
+return cljs.core.apply.call(null,cljs.core.str,cljs.core.rest.call(null,p1__35042_SHARP_));
 } else {
-return p1__32434_SHARP_;
+return p1__35042_SHARP_;
 }
 }).call(null,text)))));
 });
@@ -94,4 +94,4 @@ return new cljs.core.PersistentVector(null, 2, 5, cljs.core.PersistentVector.EMP
 }
 });
 
-//# sourceMappingURL=tables.js.map?rel=1503577464982
+//# sourceMappingURL=tables.js.map?rel=1503758422880

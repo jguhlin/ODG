@@ -23,13 +23,12 @@
              ;"-Dco.paralleluniverse.fibers.verifyInstrumentation"
                        "-XX:-OmitStackTraceInFastThrow"]
              
-  :plugins [[codox "0.6.6"]
+  :plugins [[lein-codox "0.10.3"]
             [lein-ring "0.12.0"]
             [lein-cljsbuild "1.1.7"]
-            [lein-immutant "2.1.0"]
-            [lein-kibit "0.1.5"]
-            [lein-figwheel "0.5.13"]]
-             
+            [lein-figwheel "0.5.13" :exclusions [org.clojure/clojure]]]
+
+  
   :ring {:handler odg.query-server/handler
          :port 6789
          :init odg.query-server/dev-init
@@ -37,9 +36,10 @@
          :auto-refresh? true}
          
   :java-agents [[co.paralleluniverse/quasar-core "0.7.9"]]
-  :resource-paths ["resources"]
   :dependencies [[org.clojure/clojure "1.8.0"]
-                 [co.paralleluniverse/pulsar "0.7.9"]
+                 [org.clojure/clojurescript "1.9.908" :scope "provided"]
+;                 [org.clojure/core.async "0.3.443"]
+                 [co.paralleluniverse/pulsar "0.7.9" :exclusions [org.clojure/tools.analyzer.jvm]]
                  [co.paralleluniverse/quasar-core "0.7.9"]
 ;                 [co.paralleluniverse/quasar-actors "0.7.9"]
                  [org.neo4j/neo4j "3.2.3"]
@@ -64,7 +64,6 @@
                  [ring-webjars "0.2.0"]
                  [ring/ring-defaults "0.3.1"]
                  [liberator "0.15.1"]
-                 [binaryage/devtools "0.9.4"]
                  [compojure "1.6.0"] 
                  [org.clojure/core.memoize "0.5.9"]
                  [clj-time "0.14.0"]
@@ -76,7 +75,6 @@
                  [metosin/ring-http-response "0.9.0"]
                  [mount "0.1.11"]
                  [com.cognitect/transit-cljs "0.8.239"]
-                 [org.clojure/clojurescript "1.9.908" :scope "provided"]
                  [org.clojure/tools.logging "0.4.0"]
                  [org.webjars.bower/tether "1.4.0"]
                  [org.webjars/bootstrap "4.0.0-alpha.6-1"]
@@ -88,15 +86,19 @@
                  [secretary "1.2.3"]
 ;                 [cprop "0.1.11"]
                  [selmer "1.11.0"]]
-
+  
+  :source-paths ["src/clj" "src/cljc"]
+  :test-paths   ["test/clj"]
+  :resource-paths ["resources"]
+  
   :repl-options {  ;; If nREPL takes too long to load it may timeout,
                    ;; increase this to wait longer before timing out.
                    ;; Defaults to 30000 (30 seconds)
-                 :timeout 120000}
+                 :timeout 550000}
 
   :figwheel {:nrepl-port 7002
-             :css-dirs ["resources/config/css" "resources/query/css"]
-             :nrepl-middleware [cemerick.piggieback/wrap-cljs-repl]}
+             :css-dirs ["resources/config/css" "resources/query/css"]}
+;             :nrepl-middleware [cemerick.piggieback/wrap-cljs-repl]}
   
   :profiles 
     {:dev [:project/dev]
@@ -105,20 +107,18 @@
       {:dependencies [[prone "1.1.4"]
                       [ring/ring-mock "0.3.1"]
                       [ring/ring-devel "1.6.2"]
-                      [pjstadig/humane-test-output "0.8.2"]
+                      [org.clojure/tools.nrepl "0.2.13"]
                       [binaryage/devtools "0.9.4"]
-                      [figwheel-sidecar "0.5.11"]
-                      [com.cemerick/piggieback "0.2.2"]]
+                      [com.cemerick/piggieback "0.2.2"]
+                      [figwheel-sidecar "0.5.11"]]
        :plugins [[com.jakemccrary/lein-test-refresh "0.19.0"]]
        :repl-options {:init-ns user}
-       :injections [(require 'pjstadig.humane-test-output
-                               (pjstadig.humane-test-output/activate!))]
        :cljsbuild {:builds 
                    {:config-dev
                     {:id "config"
-                     :source-paths ["src/cljs/config/"]
+                     :source-paths ["src/cljs/config/" "src/cljc"]
                      :figwheel {:on-jsload "odg.config.core/mount-components"}
-                     :compiler {:main "odg.config.core"
+                     :compiler {:main "odg.config.startup"
                                 :asset-path "js/newui/"
                                 :source-map true
                                 :optimizations :none

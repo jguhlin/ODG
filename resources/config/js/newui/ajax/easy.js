@@ -8,8 +8,8 @@ goog.require('ajax.url');
 goog.require('ajax.formats');
 ajax.easy.default_formats = cljs.core.atom.call(null,new cljs.core.PersistentVector(null, 6, 5, cljs.core.PersistentVector.EMPTY_NODE, [new cljs.core.PersistentVector(null, 2, 5, cljs.core.PersistentVector.EMPTY_NODE, ["application/transit+json",ajax.transit.transit_response_format], null),new cljs.core.PersistentVector(null, 2, 5, cljs.core.PersistentVector.EMPTY_NODE, ["application/transit+transit",ajax.transit.transit_response_format], null),new cljs.core.PersistentVector(null, 2, 5, cljs.core.PersistentVector.EMPTY_NODE, ["application/json",ajax.json.json_response_format], null),new cljs.core.PersistentVector(null, 2, 5, cljs.core.PersistentVector.EMPTY_NODE, ["text/plain",ajax.formats.text_response_format], null),new cljs.core.PersistentVector(null, 2, 5, cljs.core.PersistentVector.EMPTY_NODE, ["text/html",ajax.formats.text_response_format], null),new cljs.core.PersistentVector(null, 2, 5, cljs.core.PersistentVector.EMPTY_NODE, ["*/*",ajax.formats.raw_response_format], null)], null));
 ajax.easy.detect_response_format = (function ajax$easy$detect_response_format(var_args){
-var G__32093 = arguments.length;
-switch (G__32093) {
+var G__34692 = arguments.length;
+switch (G__34692) {
 case 0:
 return ajax.easy.detect_response_format.cljs$core$IFn$_invoke$arity$0();
 
@@ -45,9 +45,9 @@ return new cljs.core.PersistentArrayMap(null, 1, [new cljs.core.Keyword(null,"wr
 if((format == null)){
 return ajax.transit.transit_request_format.call(null,format_params);
 } else {
-var G__32095 = format;
-var G__32095__$1 = (((G__32095 instanceof cljs.core.Keyword))?G__32095.fqn:null);
-switch (G__32095__$1) {
+var G__34694 = format;
+var G__34694__$1 = (((G__34694 instanceof cljs.core.Keyword))?G__34694.fqn:null);
+switch (G__34694__$1) {
 case "transit":
 return ajax.transit.transit_request_format.call(null,format_params);
 
@@ -90,9 +90,9 @@ return new cljs.core.PersistentArrayMap(null, 2, [new cljs.core.Keyword(null,"re
 if((format == null)){
 return ajax.easy.detect_response_format.call(null);
 } else {
-var G__32097 = format;
-var G__32097__$1 = (((G__32097 instanceof cljs.core.Keyword))?G__32097.fqn:null);
-switch (G__32097__$1) {
+var G__34696 = format;
+var G__34696__$1 = (((G__34696 instanceof cljs.core.Keyword))?G__34696.fqn:null);
+switch (G__34696__$1) {
 case "transit":
 return ajax.transit.transit_response_format.call(null,format_params);
 
@@ -126,8 +126,8 @@ return null;
 ajax.easy.keyword_response_format = (function ajax$easy$keyword_response_format(format,format_params){
 
 if(cljs.core.vector_QMARK_.call(null,format)){
-return cljs.core.apply.call(null,cljs.core.vector,cljs.core.map.call(null,(function (p1__32099_SHARP_){
-return ajax.easy.keyword_response_format_element.call(null,p1__32099_SHARP_,format_params);
+return cljs.core.apply.call(null,cljs.core.vector,cljs.core.map.call(null,(function (p1__34698_SHARP_){
+return ajax.easy.keyword_response_format_element.call(null,p1__34698_SHARP_,format_params);
 }),format));
 } else {
 return ajax.easy.keyword_response_format_element.call(null,format,format_params);
@@ -163,12 +163,12 @@ ajax.easy.default_error_handler = cljs.core.atom.call(null,ajax.easy.print_error
 /**
  * Converts easy API handlers to a `ajax-request` handler
  */
-ajax.easy.transform_handler = (function ajax$easy$transform_handler(p__32100){
-var map__32101 = p__32100;
-var map__32101__$1 = ((((!((map__32101 == null)))?((((map__32101.cljs$lang$protocol_mask$partition0$ & (64))) || ((cljs.core.PROTOCOL_SENTINEL === map__32101.cljs$core$ISeq$)))?true:false):false))?cljs.core.apply.call(null,cljs.core.hash_map,map__32101):map__32101);
-var handler = cljs.core.get.call(null,map__32101__$1,new cljs.core.Keyword(null,"handler","handler",-195596612));
-var error_handler = cljs.core.get.call(null,map__32101__$1,new cljs.core.Keyword(null,"error-handler","error-handler",-484945776));
-var finally$ = cljs.core.get.call(null,map__32101__$1,new cljs.core.Keyword(null,"finally","finally",1589088705));
+ajax.easy.transform_handler = (function ajax$easy$transform_handler(p__34699){
+var map__34700 = p__34699;
+var map__34700__$1 = ((((!((map__34700 == null)))?((((map__34700.cljs$lang$protocol_mask$partition0$ & (64))) || ((cljs.core.PROTOCOL_SENTINEL === map__34700.cljs$core$ISeq$)))?true:false):false))?cljs.core.apply.call(null,cljs.core.hash_map,map__34700):map__34700);
+var handler = cljs.core.get.call(null,map__34700__$1,new cljs.core.Keyword(null,"handler","handler",-195596612));
+var error_handler = cljs.core.get.call(null,map__34700__$1,new cljs.core.Keyword(null,"error-handler","error-handler",-484945776));
+var finally$ = cljs.core.get.call(null,map__34700__$1,new cljs.core.Keyword(null,"finally","finally",1589088705));
 var h = (function (){var or__28433__auto__ = handler;
 if(cljs.core.truth_(or__28433__auto__)){
 return or__28433__auto__;
@@ -183,11 +183,11 @@ return or__28433__auto__;
 return cljs.core.deref.call(null,ajax.easy.default_error_handler);
 }
 })();
-return ((function (h,e,map__32101,map__32101__$1,handler,error_handler,finally$){
-return (function ajax$easy$transform_handler_$_easy_handler(p__32103){
-var vec__32104 = p__32103;
-var ok = cljs.core.nth.call(null,vec__32104,(0),null);
-var result = cljs.core.nth.call(null,vec__32104,(1),null);
+return ((function (h,e,map__34700,map__34700__$1,handler,error_handler,finally$){
+return (function ajax$easy$transform_handler_$_easy_handler(p__34702){
+var vec__34703 = p__34702;
+var ok = cljs.core.nth.call(null,vec__34703,(0),null);
+var result = cljs.core.nth.call(null,vec__34703,(1),null);
 (cljs.core.truth_(ok)?h:e).call(null,result);
 
 if(cljs.core.fn_QMARK_.call(null,finally$)){
@@ -196,17 +196,17 @@ return finally$.call(null);
 return null;
 }
 });
-;})(h,e,map__32101,map__32101__$1,handler,error_handler,finally$))
+;})(h,e,map__34700,map__34700__$1,handler,error_handler,finally$))
 });
-ajax.easy.transform_opts = (function ajax$easy$transform_opts(p__32107){
-var map__32108 = p__32107;
-var map__32108__$1 = ((((!((map__32108 == null)))?((((map__32108.cljs$lang$protocol_mask$partition0$ & (64))) || ((cljs.core.PROTOCOL_SENTINEL === map__32108.cljs$core$ISeq$)))?true:false):false))?cljs.core.apply.call(null,cljs.core.hash_map,map__32108):map__32108);
-var opts = map__32108__$1;
-var method = cljs.core.get.call(null,map__32108__$1,new cljs.core.Keyword(null,"method","method",55703592));
-var format = cljs.core.get.call(null,map__32108__$1,new cljs.core.Keyword(null,"format","format",-1306924766));
-var response_format = cljs.core.get.call(null,map__32108__$1,new cljs.core.Keyword(null,"response-format","response-format",1664465322));
-var params = cljs.core.get.call(null,map__32108__$1,new cljs.core.Keyword(null,"params","params",710516235));
-var body = cljs.core.get.call(null,map__32108__$1,new cljs.core.Keyword(null,"body","body",-2049205669));
+ajax.easy.transform_opts = (function ajax$easy$transform_opts(p__34706){
+var map__34707 = p__34706;
+var map__34707__$1 = ((((!((map__34707 == null)))?((((map__34707.cljs$lang$protocol_mask$partition0$ & (64))) || ((cljs.core.PROTOCOL_SENTINEL === map__34707.cljs$core$ISeq$)))?true:false):false))?cljs.core.apply.call(null,cljs.core.hash_map,map__34707):map__34707);
+var opts = map__34707__$1;
+var method = cljs.core.get.call(null,map__34707__$1,new cljs.core.Keyword(null,"method","method",55703592));
+var format = cljs.core.get.call(null,map__34707__$1,new cljs.core.Keyword(null,"format","format",-1306924766));
+var response_format = cljs.core.get.call(null,map__34707__$1,new cljs.core.Keyword(null,"response-format","response-format",1664465322));
+var params = cljs.core.get.call(null,map__34707__$1,new cljs.core.Keyword(null,"params","params",710516235));
+var body = cljs.core.get.call(null,map__34707__$1,new cljs.core.Keyword(null,"body","body",-2049205669));
 
 var needs_format = ((body == null)) && (cljs.core.not_EQ_.call(null,method,"GET"));
 var rf = (cljs.core.truth_((function (){var or__28433__auto__ = format;
@@ -222,4 +222,4 @@ ajax.easy.easy_ajax_request = (function ajax$easy$easy_ajax_request(uri,method,o
 return ajax.simple.ajax_request.call(null,ajax.easy.transform_opts.call(null,cljs.core.assoc.call(null,opts,new cljs.core.Keyword(null,"uri","uri",-774711847),uri,new cljs.core.Keyword(null,"method","method",55703592),method)));
 });
 
-//# sourceMappingURL=easy.js.map?rel=1503577464247
+//# sourceMappingURL=easy.js.map?rel=1503758421850

@@ -89,6 +89,7 @@ goog.addDependency("../devtools/core.js", ['devtools.core'], ['devtools.toolbox'
 goog.addDependency("../odg/config/db.js", ['odg.config.db'], ['cljs.core']);
 goog.addDependency("../odg/config/handlers.js", ['odg.config.handlers'], ['cljs.core', 'odg.config.db', 're_frame.core']);
 goog.addDependency("../odg/config/core.js", ['odg.config.core'], ['ajax.core', 'markdown.core', 'odg.config.subscriptions', 'reagent.core', 'cljs.core', 'goog.history.EventType', 'goog.History', 'cognitect.transit', 'keybind.core', 'odg.config.ajax', 'secretary.core', 'devtools.core', 'goog.events', 'odg.config.handlers', 're_frame.core']);
+goog.addDependency("../odg/config/startup.js", ['odg.config.startup'], ['odg.config.core', 'cljs.core', 'devtools.core']);
 goog.addDependency("../cljs/core/async/impl/protocols.js", ['cljs.core.async.impl.protocols'], ['cljs.core']);
 goog.addDependency("../cljs/core/async/impl/buffers.js", ['cljs.core.async.impl.buffers'], ['cljs.core', 'cljs.core.async.impl.protocols']);
 goog.addDependency("../cljs/core/async/impl/dispatch.js", ['cljs.core.async.impl.dispatch'], ['cljs.core', 'cljs.core.async.impl.buffers', 'goog.async.nextTick']);
@@ -112,5 +113,5 @@ goog.addDependency("../cljs/repl.js", ['cljs.repl'], ['cljs.core', 'cljs.spec.al
 goog.addDependency("../figwheel/client/socket.js", ['figwheel.client.socket'], ['cljs.core', 'goog.object', 'figwheel.client.utils', 'cljs.reader']);
 goog.addDependency("../figwheel/client/heads_up.js", ['figwheel.client.heads_up'], ['goog.dom', 'goog.string', 'cljs.core', 'goog.dom.dataset', 'goog.object', 'cljs.core.async', 'cljs.pprint', 'figwheel.client.utils', 'figwheel.client.socket', 'clojure.string']);
 goog.addDependency("../figwheel/client.js", ['figwheel.client'], ['goog.userAgent.product', 'goog.Uri', 'cljs.core', 'goog.object', 'cljs.core.async', 'figwheel.client.file_reloading', 'figwheel.client.utils', 'cljs.repl', 'figwheel.client.heads_up', 'figwheel.client.socket', 'clojure.string', 'cljs.reader']);
-goog.addDependency("../figwheel/connect/build_config_dev.js", ['figwheel.connect.build_config_dev'], ['odg.config.core', 'cljs.core', 'figwheel.client', 'figwheel.client.utils']);
+goog.addDependency("../figwheel/connect/build_config_dev.js", ['figwheel.connect.build_config_dev'], ['odg.config.core', 'cljs.core', 'odg.config.startup', 'figwheel.client', 'figwheel.client.utils']);
 goog.addDependency("../process/env.js", ['process.env'], ['cljs.core']);

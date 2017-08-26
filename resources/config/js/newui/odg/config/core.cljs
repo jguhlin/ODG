@@ -24,17 +24,11 @@
 
 
 (defn navbar []
-  (r/with-let [collapsed? (r/atom false)]
-    [:nav.navbar.navbar-inverse.navbar-fixed-top
-     [:button.navbar-toggler.hidden-sm-up
-      {:on-click #(swap! collapsed? not)} "☰"]
-     [:div.collapse.navbar-collapse.navbar-toggleable-xs
-      (when-not @collapsed? {:class "in"})
+    [:nav.navbar.navbar-light.bg-primary.navbar-toggleable-md
       [:a.navbar-brand {:href "#/"} "ODG"]
       [:ul.nav.navbar-nav
-       [nav-link "#/" "Genomes" :projects collapsed?]
-       [nav-link "#/about" "About" :about collapsed?]]]]))
-
+       [nav-link "#/" "Genomes" :projects]
+       [nav-link "#/about" "About" :about]]])
 
 (defn about-page []
   [:div.container
@@ -52,7 +46,9 @@
 (defn page []
   [:div
    [navbar]
-   [(pages @(rf/subscribe [:page]))]])
+   [(pages @(rf/subscribe [:page]))]
+   [:div "Hi"]])
+
 
 ;; -------------------------
 ;; Routes
@@ -98,4 +94,4 @@
   (mount-keybindings)
   (mount-components))
 
-(defonce start (fn [] (devtools/install!) (enable-console-print!) (init!)))
+

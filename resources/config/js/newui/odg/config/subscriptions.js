@@ -21,4 +21,4 @@ re_frame.core.reg_sub.call(null,new cljs.core.Keyword(null,"project-data","proje
 return new cljs.core.Keyword(null,"project-data","project-data",-1812708430).cljs$core$IFn$_invoke$arity$1(db);
 }));
 
-//# sourceMappingURL=subscriptions.js.map?rel=1503580037253
+//# sourceMappingURL=subscriptions.js.map?rel=1503758424653
