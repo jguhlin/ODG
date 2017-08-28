@@ -114,11 +114,23 @@
                                        (.getElementById "new-project-box")
                                        (.focus)))))
 
+(defn load-initial-config! []
+  (js/console.log "hello")
+  (GET "/config" {:handler 
+                   (fn [config]
+                     (js/console.dir config)
+                     (rf/dispatch [:set-config config])
+                     (rf/dispatch [:initial-config-load config]))}))
+
+
 (defn init! []
   (rf/dispatch-sync [:initialize-db])
   (load-interceptors!)
   (hook-browser-navigation!)
   (mount-keybindings)
-  (mount-components))
+  (mount-components)
+  (load-initial-config!)
+  (js/console.log "hi there"))
+  
 
 

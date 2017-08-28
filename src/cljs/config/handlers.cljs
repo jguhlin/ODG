@@ -13,6 +13,16 @@
     (assoc db :page page)))
 
 (reg-event-db
+  :set-config
+  (fn [db [_ config]]
+    (assoc db :config config)))
+
+(reg-event-db
+  :initial-config-load
+  (fn [db [_ config]]
+    (assoc db :init true)))
+
+(reg-event-db
   :set-docs
   (fn [db [_ docs]]
     (assoc db :docs docs)))
