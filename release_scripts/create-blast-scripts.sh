@@ -1,6 +1,6 @@
 #!/bin/bash
 
-java -javaagent:libs\quasar-core-0.7.7.jar \
+java -javaagent:libs/quasar-core-0.7.7.jar \
 	-XX:+UseConcMarkSweepGC \
 	-XX:+UseCondCardMark \
 	-XX:+UseBiasedLocking \
@@ -11,5 +11,5 @@ java -javaagent:libs\quasar-core-0.7.7.jar \
 	-Xss64M \
 	-Dco.paralleluniverse.fibers.detectRunawayFibers=false \
 	-XX:-OmitStackTraceInFastThrow \
-	-jar libs\odg-1.0.0.jar \
+	-jar libs/odg-1.0.0.jar \
 	create-scripts
