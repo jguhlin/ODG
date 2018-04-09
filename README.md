@@ -2,19 +2,19 @@
 
 ## Introduction
 
-Welcome. This project is in near-publication stage. Please follow this project for announcements or e-mail me (guhli007 at umn.edu) and ask to be mailed when the initial release is out.
+Please see the [BMC Bioinformatics](https://bmcbioinformatics.biomedcentral.com/articles/10.1186/s12859-017-1777-7) publication for more general information.
 
 ## What this does
 
-This program takes genome files and output from various programs to create a graph database for querying genomic data across domains. This program is stable and database structure is well defined.
+This program collates genome files and output from genomic analysis programs to create a graph database for querying genomic data across domains. This program is stable and database structure is well defined.
 
-Feel free to ask questions or make suggestions.
+Feel free to ask questions, make suggestions, or reach out for additional help.
 
 ## Manual
 
-Please see the manual for more information.
+A [manual and FAQ are available](https://github.com/jguhlin/ODG/tree/master/doc).
 
-An [Installation Video](https://youtu.be/X7RL-pZ4ZTA) is available. It also contains some initial steps to getting the database pipeline prepared. The set-up is similar across all platforms. A quick-start PDF / PPT guide is currently being generated.
+An [Installation Video](https://youtu.be/X7RL-pZ4ZTA) is also available. It also contains some initial steps to getting the database pipeline prepared. The set-up is similar across all platforms. A quick-start PDF / PPT guide is currently being generated.
 
 ## FAQ
 
@@ -22,7 +22,7 @@ Please see the FAQ for additional information if you are having trouble.
 
 ## Usage
 
-Download and run appropriate programs to create the output. Please see the documentation to see what types of files are necessary.
+Please see the documentation to see what types of files are necessary.
 
 ### File Formats
 File formats and attributes within are the most important factor in taking flat 2-dimensional files and generating a connected graph database. The manual details this, although you may take a look at the example files if you have additional questions. With ODG we have striven to make it flexible and work with the output of several programs. Many output files (especailly GFF and FASTA) can be converted to work with ODG relatively easily, as it is usually renaming a field. Many programs can do this, including *nano* on Linux and Mac OS X, and [Notepad2](http://www.flos-freeware.ch/notepad2.html) on Windows, although any text editor with Find/Replace functionality can work. Window's own "notepad" can work although it often struggles to open larger text files, such as GFF or FASTA files. 
@@ -101,8 +101,8 @@ Tutorials for accessing ODG's database from R is coming soon.
 
 ## Future
 
-I am currently updating ODG's web interfaces to be more responsive and malleable. This is happening in a separate branch at this time.
+I am currently updating ODG's web interfaces to be more responsive. This is happening in a separate branch at this time.
 
 ## License
-Copyright � 2017 Joseph Guhlin, Licensed under GPL v3 (see LICENSE file)
+Copyright � 2017-2018 Joseph Guhlin, Licensed under GPL v3 (see LICENSE file)
 
