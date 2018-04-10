@@ -12,7 +12,7 @@ Feel free to ask questions, make suggestions, or reach out for additional help.
 
 ## Manual
 
-A [manual and FAQ are available](https://github.com/jguhlin/ODG/tree/master/doc).
+A [manual and FAQ are available](https://github.com/jguhlin/ODG/tree/master/doc). [Screenshots are also available](https://josephguhlin.com/projects/odg-omics-database-generator/).
 
 An [Installation Video](https://youtu.be/X7RL-pZ4ZTA) is also available. It also contains some initial steps to getting the database pipeline prepared. The set-up is similar across all platforms. A quick-start PDF / PPT guide is currently being generated.
 

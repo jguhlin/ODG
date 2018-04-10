@@ -60,7 +60,7 @@
 (defn get-gene-definition-by-species
   []
   (db/query
-    "MATCH (n:gene) WHERE EXISTS(n.species) 
+    "MATCH (n) WHERE (n:gene OR n:CDS) AND EXISTS(n.species) 
        RETURN DISTINCT n.species, n.version, COUNT(*) AS n ORDER BY n.species, n.version"
     (into [] (map
                (fn [x] 
@@ -73,7 +73,9 @@
 (defn get-species
   []
   (db/query 
-    "MATCH (n:gene) WHERE EXISTS(n.species) RETURN DISTINCT n.species AS id, n.version AS version ORDER BY id, version"
+    "MATCH (n) WHERE 
+    (n:gene OR n:CDS)
+    AND EXISTS(n.species) RETURN DISTINCT n.species AS id, n.version AS version ORDER BY id, version"
     (into [] (map 
                (fn [x] (str (get x "id") " " (get x "version")))
                results))))
