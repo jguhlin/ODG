@@ -2,7 +2,7 @@
 
 ## Introduction
 
-Please see the [BMC Bioinformatics](https://bmcbioinformatics.biomedcentral.com/articles/10.1186/s12859-017-1777-7) publication for more general information.
+Please see the [BMC Bioinformatics](https://bmcbioinformatics.biomedcentral.com/articles/10.1186/s12859-017-1777-7) publication for more general information. You may also be interested in viewing [screenshots](https://josephguhlin.com/projects/odg-omics-database-generator/).
 
 ## What this does
 
