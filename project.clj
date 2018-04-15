@@ -1,38 +1,38 @@
-(defproject odg "1.1.0"
+(defproject odg "1.1.1"
   :main odg.core
   :aot [odg.core]
   :profiles {
-	:uberjar { :aot :all }
-  }
+                              :uberjar { :aot :all}}
+  
   :description "FIXME: write description"
   :url "http://example.com/FIXME"
   :jvm-opts ^:replace [
-             "-Xms6G"
-             "-Xmx6G"
-             ;"-XX:MaxDirectMemorySize=1G" ; May have caused a huge slowdown? At least in eclipse...
-             ;"-XX:+UseParallelGC"
-             "-XX:+UseConcMarkSweepGC"
-             "-XX:+UseCondCardMark"
-             "-XX:+UseBiasedLocking"
-             "-XX:+AggressiveOpts"
-             "-XX:+UseCompressedOops"
-             "-XX:+UseFastAccessorMethods"
-             "-XX:+DoEscapeAnalysis"
-             "-Xss64M"
-             "-d64"
-             "-server"
-             "-Dco.paralleluniverse.fibers.detectRunawayFibers=false"
-             ;"-Dco.paralleluniverse.fibers.verifyInstrumentation"
-             "-XX:-OmitStackTraceInFastThrow"
-             ]
+                       "-Xms6G"
+                       "-Xmx6G"
+                       ;"-XX:MaxDirectMemorySize=1G" ; May have caused a huge slowdown? At least in eclipse...
+                       ;"-XX:+UseParallelGC"
+                       "-XX:+UseConcMarkSweepGC"
+                       "-XX:+UseCondCardMark"
+                       "-XX:+UseBiasedLocking"
+                       "-XX:+AggressiveOpts"
+                       "-XX:+UseCompressedOops"
+                       "-XX:+UseFastAccessorMethods"
+                       "-XX:+DoEscapeAnalysis"
+                       "-Xss64M"
+                       "-d64"
+                       "-server"
+                       "-Dco.paralleluniverse.fibers.detectRunawayFibers=false"
+                       ;"-Dco.paralleluniverse.fibers.verifyInstrumentation"
+                       "-XX:-OmitStackTraceInFastThrow"]
+  
   :plugins [[codox "0.6.6"]
             [lein-ring "0.8.11"]]
   :ring {:handler odg.query-server/handler
          :port 6789
          :init odg.query-server/dev-init
          :auto-reload? true
-         :auto-refresh? true
-         }
+         :auto-refresh? true}
+  
   :java-agents [[co.paralleluniverse/quasar-core "0.7.8"]]
   :resource-paths ["resources"]
   :dependencies [[org.clojure/clojure "1.8.0"]
@@ -60,8 +60,8 @@
                  [ring/ring-json "0.4.0"]
                  [liberator "0.14.1"]
                  [compojure "1.6.0"] 
-                 [org.clojure/core.memoize "0.5.9"]
-                 ])
+                 [org.clojure/core.memoize "0.5.9"]])
+                 
 
 
 
