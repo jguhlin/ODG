@@ -36,6 +36,7 @@
 
   :resource-paths ["resources"]
   :dependencies [[org.clojure/clojure "1.9.0"]
+                 [org.clojure/core.async "0.4.474"]
                  [org.neo4j/neo4j "3.4.9"]
                  [clojure-csv/clojure-csv "2.0.2"]
                  [cheshire "5.8.1"]

@@ -1,11 +1,12 @@
 (ns odg.db-handler
   (:require
     [taoensso.timbre :as timbre]
+    [clojure.core.async :as async :refer all]
     [clojure.core.reducers :as r]
+
     [criterium.core :as cc])
 
   (:import
-    [co.paralleluniverse.actors Actor]
     (org.neo4j.graphdb NotFoundException
                        NotInTransactionException
                        RelationshipType
@@ -540,34 +541,29 @@
 ;                     )))))
    1))
 
-(def batchdb-server
-  (reify Server
-    (init [this]) ; No longer doing anything here
+; Re-implementing batchdb-server as async channels
 
-    (handle-call
-      [this from id message]
-      (case (first message)
-        :connect (let
-                   [[db_path memory] (rest message)]
-                   (println "Starting Database at" db_path "with" memory)
-                   (let [db (org.neo4j.unsafe.batchinsert.BatchInserters/inserter
-                              (java.io.File. db_path)
-                              {
-                               "dbms.pagecache.memory" memory
-                               "dump_configuration"  "true"
-                               "cache_type"   "soft"})
+(def batchdb-server (chan 10000))
 
-                         index-manager (org.neo4j.index.lucene.unsafe.batchinsert.LuceneBatchInserterIndexProvider. db)]
-
-                     (set-state! (merge
-                                   @state
-                                   {:db db
-                                    :index-manager index-manager
-                                    :mapping {}}))))
-
-
-        :load-mapping (let [[mapping-file] (rest message)]
-                        (set-state!
+(go
+  (loop [from :blank
+         id :blank
+         message :blank]
+    (case (first message)
+      :connect  (let [db_path memory] (rest message)
+                  (println "Starting Batch Database at" db_path "with" memory)
+                  (let [db (org.neo4j.unsafe.batchinsert.BatchInserters/BatchInserter
+                             (java.io.File. db_path)
+                             {"dbms.pagecache.memory" memory}
+                             "dump_configuration" "true"
+                             "cache_type" "soft")
+                        index-manager (org.neo4j.index.lucene.unsafe.batchinsert.LuceneBatchInserterIndexProvider. db)]
+                    (set-state! (merge @state
+                                  {:db db
+                                   :index-manager index-manager
+                                   :mapping {}}))))
+      :load-mapping (let [[mapping-file] (rest message)]
+                      (set-state!
                           (merge
                             @state
                             {:mapping
@@ -578,26 +574,26 @@
                                    (for [[main-id & alt-ids] (map (fn [x] (clojure.string/split x #"\t")) (line-seq rdr))]
                                      {main-id alt-ids}))))})))
 
-        ; Exclusively for debugging purposes...
-        :get-db (let [dbd (:db @state)]
+      ; Exclusively for debugging purposes...
+      :get-db (let [dbd (:db @state)]
                   dbd)
 
-        :get-node-index
+      :get-node-index
                 (let [[index-name] (rest message)
                       index-manager (:index-manager @state)
                       idx (get-node-index index-manager index-name)]
                   idx)
 
       ; Main place where things will happen
-       :batch
-       (let [[batch-package] (rest message)
+      :batch
+        (let [[batch-package] (rest message)]
              db            (:db @state)
              index-manager (:index-manager @state)
-             mapping       (:mapping @state)]
+             mapping       (:mapping @state)
          (handle-batch db index-manager mapping batch-package))
       ;[]) ; Return something so it doesn't block forever
 
-       :node (let [[^java.util.Map node-properties node-labels] (rest message)
+      :node (let [[^java.util.Map node-properties node-labels] (rest message)
                    ^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)]
 
                (println "DB:" db)
@@ -606,9 +602,9 @@
                (reply! from id (.createNode db node-properties node-labels))
                nil)
 
-       :rel (do (reply! from id "not yet"))
+      :rel (do (reply! from id "not yet"))
 
-       :query-properties
+      :query-properties
        (let [[data] (rest message)
              index-name (:index data)
              index-manager (:index-manager @state)
@@ -635,7 +631,7 @@
                                  results)
                            (first results))))]))))))
 
-       :query (let [[data] (rest message)
+      :query (let [[data] (rest message)
                     index-name (:index data)
                     index-manager (:index-manager @state)
                     idx (get-node-index index-manager index-name)
@@ -661,9 +657,11 @@
                                                              node-id
                                                              (.getNodeProperties db node-id)
                                                              (map (fn [x] (.name x)) (.getNodeLabels db node-id)))) results))
-                               (first results))])))))
+                               (first results))]))))))
 
-       (reply-error! from id "Invalid call sent")))
+
+
+
 
     (handle-cast [this from id message]
       (case (first message)
@@ -708,11 +706,6 @@
         ;                      properties))))
 
         (println "Invalid message: " (first message))))
-
-    (handle-info [this message])
-
-    (handle-timeout [this]
-      (println "Timeout!"))
 
     (terminate [this cause]
       (println "Shutting down")
