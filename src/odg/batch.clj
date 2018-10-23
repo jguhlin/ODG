@@ -1,23 +1,21 @@
 (ns odg.batch
   "Database functions for batch mode."
   (:require
-    [co.paralleluniverse.pulsar.core :as p]
-    [taoensso.timbre :as timbre]
-    [co.paralleluniverse.pulsar.actors :as actors])
+    [taoensso.timbre :as timbre])
   (:import (org.neo4j.graphdb NotFoundException
                               NotInTransactionException
                               RelationshipType
                               DynamicLabel
                               Label)
            (org.apache.lucene.queryparser.classic QueryParser)
-           (org.neo4j.unsafe.batchinsert 
+           (org.neo4j.unsafe.batchinsert
              BatchInserter
              BatchInserters
              BatchInserterIndexProvider
              BatchInserterIndex)
-           (org.neo4j.index.lucene.unsafe.batchinsert 
-             LuceneBatchInserterIndexProvider) 
-           ))
+           (org.neo4j.index.lucene.unsafe.batchinsert
+             LuceneBatchInserterIndexProvider)))
+
 
 (set! *warn-on-reflection* true)
 
@@ -42,7 +40,7 @@
 
 (defn split-id [id]
   (when id
-    (map 
+    (map
       clojure.string/trim
       (concat
         [id]
@@ -50,18 +48,18 @@
         (clojure.string/split id #"[\|:]")
         (clojure.string/split id #"[\s\|:]")
         (clojure.string/split id #"[\s\|:\.]")))))
-  
+
 (defn possible-ids [current-id]
   (try
-    (reverse 
-      (sort-by 
+    (reverse
+      (sort-by
         count
-        (filter 
+        (filter
           (fn [^String x] (>= (.length x) 4)) ; Length of 4 for unique ID's is probably a safe bet.
-          (for [id (distinct 
-                     (concat 
+          (for [id (distinct
+                     (concat
                        [current-id] ; Also test the ID we are given
-                       (split-id current-id) 
+                       (split-id current-id)
                        (map clojure.string/lower-case (split-id current-id))
                        (map clojure.string/upper-case (split-id current-id))))]
             id))))
@@ -75,8 +73,8 @@
 (def dynamic-label
   (memoize
     (fn [x]
-      (when-not (or (nil? x) (clojure.string/blank? x)) 
-      (org.neo4j.graphdb.DynamicLabel/label x)))))
+      (when-not (or (nil? x) (clojure.string/blank? x))
+       (org.neo4j.graphdb.DynamicLabel/label x)))))
 
 (def labels {:GENE (org.neo4j.graphdb.DynamicLabel/label "Gene")
              :MRNA (org.neo4j.graphdb.DynamicLabel/label "mRNA")

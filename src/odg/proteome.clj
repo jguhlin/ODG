@@ -36,32 +36,32 @@
         "length"   ["protein-length" y]
         "md5"      ["protein-md5" y]
                    [x y]))
-      (let [x (map 
-                (juxt second third)
-                (filter 
-                  identity
-                  (concat
-                    (re-seq #"(\w+):(.+?)\s" line)
-                    (re-seq #"(\w+?)=(.+?)(;|$)" line)
-                    (re-seq #"(\w+?)=(.+?)\s" line))))]
-        
-        (if 
-          (> (count x) 1)
-          (let [a (drop-last x)
-                y (last x)
-                
-                final-def (second
-                            (re-find
-                              (re-pattern 
-                               (str 
-                                "(" 
-                                (java.util.regex.Pattern/quote (second y))
-                                ".+)$"))
-                              line))
-            
-            ]
-        
-        (conj a [(first y) final-def]))))))
+    (let [x (map
+              (juxt second third)
+              (filter
+                identity
+                (concat
+                  (re-seq #"(\w+):(.+?)\s" line)
+                  (re-seq #"(\w+?)=(.+?)(;|$)" line)
+                  (re-seq #"(\w+?)=(.+?)\s" line))))]
+
+      (if
+        (> (count x) 1)
+        (let [a (drop-last x)
+              y (last x)
+
+              final-def (second
+                          (re-find
+                            (re-pattern
+                             (str
+                              "("
+                              (java.util.regex.Pattern/quote (second y))
+                              ".+)$"))
+                            line))]
+
+
+
+         (conj a [(first y) final-def]))))))
 
 (defn node-definition
   [labels species version x]
@@ -69,12 +69,12 @@
         data (val x)]
     [(merge
        {:id id
-       :species species
-       :version version
-       :length (:length data)
-       :protein_definition_header (:protein_definition_header data)
-       :md5 (:md5 data)}
-       (into 
+        :species species
+        :version version
+        :length (:length data)
+        :protein_definition_header (:protein_definition_header data)
+        :md5 (:md5 data)}
+       (into
          {}
          (for [[k v] (get-attributes-if-any (:protein_definition_header data))]
            [(keyword k) v])))
@@ -92,9 +92,9 @@
                               {:index (batch/convert-name species version)
                                :action :query
                                :query (keys data)}))
-        
+
         existing-set (apply hash-set (keys proteins-existing))
-        
+
         proteins-not-existing (remove (fn [x]
                                         (existing-set (key x)))
                                       data)
@@ -102,15 +102,15 @@
         species-label (batch/dynamic-label species)
         version-label (batch/dynamic-label (str species " " version))
         labels (partial into [species-label version-label])
-        
+
         create-node (partial node-definition labels species version)
-        
+
         nodes (distinct
                 (doall
-                  (map create-node data)))
-        
-        ]
-    
+                  (map create-node data)))]
+
+
+
     {:indices [(batch/convert-name species version)]
      :nodes-update-or-create nodes
      :rels (distinct
@@ -121,27 +121,25 @@
                     (vec (dbh/get-ids x))
                     (:id x)
                     {}])
-                 nodes)))
-     
-;     :rels (distinct 
+                 nodes)))}))
+
+;     :rels (distinct
 ;             (doall
-;               (map 
+;               (map
 ;                 (fn [x]
 ;                   [(:HAS_PROTEIN db/rels)
 ;                    (if-let [x
-;                             (get 
-;                               (into 
-;                                 {} 
-;                                 (get-attributes-if-any 
-;                                   (:protein_definition_header 
-;                                     (val x)))) 
+;                             (get
+;                               (into
+;                                 {}
+;                                 (get-attributes-if-any
+;                                   (:protein_definition_header
+;                                     (val x))))
 ;                               "gene-id")]
 ;                        x
-;                      ;else 
+;                      ;else
 ;                      (get-gene-id (key x)))
 ;                    (key x)
 ;                    {}])
 ;               data)))
      ;:exact-ids true
-     }))
-    

@@ -1,8 +1,8 @@
-(defproject odg "1.1.1"
+(defproject odg "2.0.alpha"
   :main odg.core
   :aot [odg.core]
-  :profiles {
-                              :uberjar { :aot :all}}
+  :profiles {}
+    :uberjar { :aot :all}
 
   :description "FIXME: write description"
   :url "http://example.com/FIXME"

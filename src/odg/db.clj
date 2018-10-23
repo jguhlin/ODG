@@ -21,8 +21,8 @@
       TraversalDescription
       Evaluator
       Evaluation
-      Evaluators)
-    ))
+      Evaluators)))
+
 
 (def ^:dynamic *db-connected* nil)
 (def ^:dynamic *db*)
@@ -73,15 +73,15 @@
            :INTERACTION (org.neo4j.graphdb.DynamicRelationshipType/withName "INTERACTION")
            :INTERACTION_TYPE (org.neo4j.graphdb.DynamicRelationshipType/withName "INTERACTION_TYPE")
            :HAS_PROTEIN (org.neo4j.graphdb.DynamicRelationshipType/withName "HAS_PROTEIN")
-           :HMM_MATCH (org.neo4j.graphdb.DynamicRelationshipType/withName "HMM_MATCH")
-           })
+           :HMM_MATCH (org.neo4j.graphdb.DynamicRelationshipType/withName "HMM_MATCH")})
+
 
 (def BOTH org.neo4j.graphdb.Direction/BOTH)
 (def INCOMING org.neo4j.graphdb.Direction/INCOMING)
 (def OUTGOING org.neo4j.graphdb.Direction/OUTGOING)
 
 (def dynamic-rel
-  (memoize 
+  (memoize
     (fn
       [rel_type]
       (org.neo4j.graphdb.DynamicRelationshipType/withName (clojure.string/upper-case rel_type)))))
@@ -89,55 +89,55 @@
 (defn connect
   [^String db-location ^String memory]
   (let [graph-db-factory (new org.neo4j.graphdb.factory.GraphDatabaseFactory)]
-    
-    (when 
+
+    (when
       (or
         (nil? *db-connected*)
         (= *db-connected* "no"))
-      
+
       (alter-var-root
         #'*db-connected*
         (fn [_] "yes"))
-      
+
       (alter-var-root
         #'*db*
         (fn [_]
           (-> (.newEmbeddedDatabaseBuilder graph-db-factory (java.io.File. db-location))
             (.setConfig {"use_memory_mapped_buffers" "true"
                          "mapped_memory_total_size" memory
-                         "dump_configuration"	"true"
-                         "cache_type" 	"soft"
+                         "dump_configuration"  "true"
+                         "cache_type"   "soft"
                          "dense_node_threshold" "1000"
-                         "allow_store_upgrade" "true"
-                         })
+                         "allow_store_upgrade" "true"})
+
             (.newGraphDatabase))))
-      
+
       (alter-var-root
         #'*index-manager*
         (fn [_]
           (.index *db*)))
-      
-      (.addShutdownHook (Runtime/getRuntime) (Thread. 
-                                               (fn [] 
+
+      (.addShutdownHook (Runtime/getRuntime) (Thread.
+                                               (fn []
                                                  (locking *db*
                                                    (.shutdown *db*))
                                                  (println "Shutting down...")))))))
-  
+
 (defmacro with-tx [db & body]
   `(let [tx# ^org.neo4j.kernel.impl.coreapi.TopLevelTransaction (.beginTx ~db)]
      ;(println tx#)
-     (try (do 
+     (try (do
             (let [return# (do ~@body)]
               (.success tx#)
               ;(println "Returning")
               ;(println return#)
               return#))
        (catch Exception e# (.failure tx#)
-         (println (str "Caught Exception:" (.getMessage e#))) 
+         (println (str "Caught Exception:" (.getMessage e#)))
          (println (str "Additional Data:" (.toString e#)))
          (.printStackTrace e#))
-       (finally (.close tx#))
-       )))
+       (finally (.close tx#)))))
+
 
 (defmacro cypher [db query parameters & body]
   `(with-tx ~db
@@ -155,14 +155,14 @@
 
 (defmacro query
   ([query body]
-    `(cypher *db* ~query {}
-             ~@body)) ; Just execute
+   `(cypher *db* ~query {}
+            ~@body)) ; Just execute
   ;  ([query parameters] ; Probably not used anymore...
   ;    `(cypher *db* *execution-engine* ~query ~parameters
   ;             (into [] ~'results))) ; Just returns the results
   ([query parameters & body]
-    `(cypher *db* ~query ~parameters
-             ~@body)))
+   `(cypher *db* ~query ~parameters
+            ~@body)))
 
 (defn calculate-landmark
   [landmark pos]
@@ -206,10 +206,10 @@
   (create-index (:MRNA batch/labels) "id")
   (create-index (:LANDMARK batch/labels) "id")
   (create-index (:LANDMARK_HASH batch/labels) "id")
-  (create-index (batch/dynamic-label "GO") "id") ; GO should always be used, PO should be determined from config file (later)
-  
-  )
-  
+  (create-index (batch/dynamic-label "GO") "id")) ; GO should always be used, PO should be determined from config file (later)
+
+
+
 ; Traversers go below here
 
 
@@ -228,4 +228,3 @@
 ;    (.relationships (:LOCATED_ON rels) OUTGOING)
 ;    (.relationships (:LOCATED_ON rels) OUTGOING)
 ;    (.evaluator (Evaluators/atDepth 2))))
-

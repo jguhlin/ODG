@@ -1,7 +1,5 @@
 (ns odg.db-handler
   (:require
-    [co.paralleluniverse.pulsar.core :as p]
-    [co.paralleluniverse.pulsar.actors :refer :all]
     [taoensso.timbre :as timbre]
     [clojure.core.reducers :as r]
     [criterium.core :as cc])
@@ -13,19 +11,16 @@
                        RelationshipType
                        DynamicLabel
                        Label)
-    (org.neo4j.unsafe.batchinsert 
+    (org.neo4j.unsafe.batchinsert
       BatchInserter
       BatchInserters
       BatchInserterIndexProvider
       BatchInserterIndex)
-    (org.neo4j.index.lucene.unsafe.batchinsert 
+    (org.neo4j.index.lucene.unsafe.batchinsert
       LuceneBatchInserterIndexProvider)))
 
 (set! *warn-on-reflection* true)
 
-; (timbre/refer-timbre)
-
-; pulsar actor's has "log" so we exclude it here.
 
 (require '[taoensso.timbre :as timbre
            :refer (trace  debug  info  warn  error  fatal  report
@@ -39,7 +34,7 @@
 
 (defn dbquote-and-escape
   [x]
-  (str "\"" 
+  (str "\""
        (org.apache.lucene.queryparser.classic.QueryParser/escape x)
        "\""))
 
@@ -68,9 +63,9 @@
 (def blank-labels (into-array org.neo4j.graphdb.Label []))
 (def test-label (into-array org.neo4j.graphdb.Label [(org.neo4j.graphdb.DynamicLabel/label "Test")]))
 
-(p/defsfn create-node
-  [^org.neo4j.unsafe.batchinsert.BatchInserter db-handler 
-   ^java.util.Map node-properties 
+(defn create-node
+  [^org.neo4j.unsafe.batchinsert.BatchInserter db-handler
+   ^java.util.Map node-properties
    node-labels]
   (try
     (.createNode db-handler node-properties node-labels)
@@ -79,7 +74,7 @@
       (println e)
       (.printStackTrace e))))
 
-(p/defsfn create-rel
+(defn create-rel
   [^org.neo4j.unsafe.batchinsert.BatchInserter db-handler
    ^Long start
    ^Long end
@@ -97,7 +92,7 @@
       (println rel-type)
       (println rel-properties)
       (System/exit 99))))
-      
+
 
 ; Get node-index
 (defn get-node-index
@@ -112,14 +107,14 @@
   ([^LuceneBatchInserterIndexProvider index-manager indexname]
    (let [idx (.nodeIndex index-manager indexname {"type" "fulltext" "to_lower_case" "true"})]
      idx)))
-        
+
 ; Get index name (species + version OR :index-name)
 (defn get-index-name
   [data]
   (if (:index-name data)
     (:index-name data)
-    (clojure.string/lower-case 
-      (clojure.string/replace 
+    (clojure.string/lower-case
+      (clojure.string/replace
         (clojure.string/join " " [(:species data) (:version data)])
         #"\s|\." "_"))))
 
@@ -127,7 +122,7 @@
   (try
     (when (string? id)
       (distinct
-        (map 
+        (map
           clojure.string/trim
           (concat
             [id]
@@ -148,17 +143,17 @@
     (apply concat (map possible-ids current-id))
     (if (nil? current-id) ""
       (try
-        (concat 
+        (concat
           [current-id]
-          (reverse 
-            (sort-by 
+          (reverse
+            (sort-by
               count
-              (filter 
+              (filter
                 (fn [^String x] (>= (.length x) 4)) ; Length of 4 for unique ID's is probably a safe bet.
-                (for [id (distinct 
-                           (concat 
+                (for [id (distinct
+                           (concat
                              [current-id] ; Also test the ID we are given
-                             (split-id current-id) 
+                             (split-id current-id)
                              (map clojure.string/lower-case (split-id current-id))
                              (map clojure.string/upper-case (split-id current-id))))]
                   id)))))
@@ -172,7 +167,7 @@
 
 (defn get-ids
   ([node-properties]
-   (filter 
+   (filter
      identity
      (list
        (get node-properties "id")
@@ -192,27 +187,27 @@
        (get node-properties "product") ; More suited to fulltext ID
        (get node-properties "other_name")))) ; More suited to "fulltext" ID
       ;(get node-properties "definition") ; Causes problems with IPR nodes
-      
+
   ([id-fields node-properties]
-   (filter 
+   (filter
      identity
      (mapcat (fn [x] (get node-properties x)) id-fields))))
 
 ; Get existing IDs in batch import set, including some optional ID fields
 ; Add more fields when necessary
-(p/defsfn get-ids-in-batch
+(defn get-ids-in-batch
   [nodes]
   (into #{}
         (flatten
-          (filter 
+          (filter
             identity
             (concat
               (map (comp get-ids first) nodes))))))
 
 (defn get-relationship-endpoints
-  [rels] 
+  [rels]
   (into #{}
-        (remove 
+        (remove
           integer?
           (concat
             (map (comp second) rels)
@@ -221,7 +216,7 @@
 ; Identify which IDs need to be searched for in the index
 (defn identify-index-targets
   [data]
-  (let [node-ids (into 
+  (let [node-ids (into
                    #{}
                    (distinct
                      (concat
@@ -230,12 +225,12 @@
         rel-endpoints (concat
                         (get-relationship-endpoints (:rels data))
                         (get-ids-in-batch (:nodes-update data)))]
-                        
+
     (remove node-ids rel-endpoints)))
 
-(p/defsfn batch-create-node
-  [^org.neo4j.unsafe.batchinsert.BatchInserter db-handler 
-   ^java.util.Map node-properties 
+(defn batch-create-node
+  [^org.neo4j.unsafe.batchinsert.BatchInserter db-handler
+   ^java.util.Map node-properties
    node-labels]
   (try
     [(get-ids node-properties) (.createNode db-handler node-properties node-labels)]
@@ -244,27 +239,27 @@
       (println e)
       (.printStackTrace e))))
 
-(p/defsfn query-index
+(defn query-index
   [^BatchInserterIndex idx id]
   (first
     (filter
       identity
       (for [id (flatten (remove clojure.string/blank? (possible-ids id)))]
         (try
-          (index-query 
+          (index-query
             [query (.query idx "id" (dbquote-and-escape id))]
             (let [results (set query)]
               (cond
-                (= 1 (count results)) results 
+                (= 1 (count results)) results
                 (= 0 (count results)) nil
                 (> 1 (count results)) results)))
-          (catch Exception e (println "Got error for index query for"  id ":" (.getMessage e) " " e))))))) 
+          (catch Exception e (println "Got error for index query for"  id ":" (.getMessage e) " " e)))))))
 ; Previously an error was thrown if there was more than 1 result, but it should be handled later
 
 ; HB stands for "handle batch" for certain operations that only happen inside the batch handler
 
 ; Flush index before querying!
-(p/defsfn hb-query
+(defn hb-query
   [^BatchInserterIndex idx id]
   (.flush idx)
   (first
@@ -272,21 +267,21 @@
       identity
       (try
         (for [id (flatten (remove clojure.string/blank? (possible-ids id)))]
-          (index-query 
+          (index-query
             [query (.query idx "id" (dbquote-and-escape id))]
             (let [results (set query)]
               (cond
-                (= 1 (count results)) (first results) 
+                (= 1 (count results)) (first results)
                 (= 0 (count results)) nil
                 (> 1 (count results)) (do
                                         (info (str "More than one node found for index search for " id))
                                         (throw (Throwable. (str "More than one node found for index search for " query)))
                                         nil)))))
-            
+
         (catch Exception e
           (println "Caught exception: " (.getMessage e)))))))
-  
-(p/defsfn hb-query-ids-
+
+(defn hb-query-ids-
   [^BatchInserterIndex idx ids]
   (.flush idx)
   (let [query (memoize (fn [id] (hb-query idx id)))]
@@ -295,43 +290,43 @@
            (for [id (filter query ids)
                  :let [node-id (query id)]]
              {id node-id})))))
-     
+
 
 
 ; Flush index before querying!
-(p/defsfn hb-query-node
+(defn hb-query-node
   [^BatchInserterIndex idx node]
   (.flush idx)
   (first
     (filter
       identity
       (for [id (distinct (flatten (map possible-ids (remove nil? (remove clojure.string/blank? (get-ids (first node)))))))]
-        (index-query 
+        (index-query
           [query (.query idx "id" (dbquote-and-escape id))]
           (let [results (set query)]
             (cond
-              (= 1 (count results)) (first results) 
+              (= 1 (count results)) (first results)
               (= 0 (count results)) nil
               (< 1 (count results)) (do
                                       (warn (str "More than one node found for index search for " id))
                                       (first results)))))))))
 
-(p/defsfn hb-query-node-exact
+(defn hb-query-node-exact
   [^BatchInserterIndex idx node]
   (when (not (clojure.string/blank? (get (first node) "id")))
-    (index-query 
+    (index-query
       [query (.query idx "id" (dbquote (get (first node) "id")))]
       (let [results (set query)]
         (cond
-          (= 1 (count results)) (first results) 
+          (= 1 (count results)) (first results)
           (= 0 (count results)) nil
           (< 1 (count results)) (do
                                   (warn (str "More than one node found for index search for " (get node "id")))
                                   (first results)))))))
-          
-      
 
-(p/defsfn hb-get-node-ids-
+
+
+(defn hb-get-node-ids-
   [^BatchInserterIndex idx nodes]
   (.flush idx)
   (let [query (memoize (fn [node] (hb-query-node idx node)))]
@@ -341,10 +336,10 @@
                  id (get-ids (first node))
                  :let [node-id (query node)]]
              {id node-id})))))
-     
+
 
 ; Identify which nodes exist in the index and return two lists... Return full definition but also :node_id (somehow) if the node already exists...
-(p/defsfn hb-split-existing-
+(defn hb-split-existing-
   [^BatchInserterIndex idx nodes exact-ids]
   (.flush idx)
   (let [query (if exact-ids
@@ -358,17 +353,17 @@
                    id (get-ids (first node))
                    :let [node-id (query node)]]
                {id node-id})))]))
-     
+
 
 ; (filter #(= (:id %) "MI:1290") (map first (:nodes-update-or-create psi)))
 
 ; Handle Batch ("hb") Create Nodes FN
-(p/defsfn hb-create-nodes- 
+(defn hb-create-nodes-
   [db nodes]
   (into
     {}
     (doall
-      (for [[ids node-id] 
+      (for [[ids node-id]
             (map (fn [[x y]]
                    (batch-create-node db x y))
                  nodes)
@@ -376,7 +371,7 @@
         {id node-id}))))
 
 ; Fn to update nodes
-(p/defsfn update-node
+(defn update-node
   [^org.neo4j.unsafe.batchinsert.BatchInserter db node-id properties labels]
   (.setNodeProperties
     db
@@ -390,38 +385,38 @@
           (clojure.string/join "\n" [x y])))
       (dissoc properties "id")
       (.getNodeProperties db node-id)))
-  
-  (.setNodeLabels 
+
+  (.setNodeLabels
     db
     node-id
-    (into-array org.neo4j.graphdb.Label 
+    (into-array org.neo4j.graphdb.Label
                 (distinct
-                  (reduce 
+                  (reduce
                     into []
                     [(.getNodeLabels db node-id)
                      labels])))))
 
 ; TODO: Add support for exact-ids in other logic
-(p/defsfn handle-batch
+(defn handle-batch
   [^org.neo4j.unsafe.batchinsert.BatchInserter db index-manager mapping data]
-  
+
   (info "Handle batch entered... " (:comment data) " " (:indices data))
-  
+
   (let [new-ids           (:new-ids data)
         index-targets     (:index-targets data)
         exact-ids         (:exact-ids data)
-        
+
         ; Identify which nodes exist for :nodes-update-or-create
-        [nodes-to-update nodes-to-create existing-nodes-map] 
+        [nodes-to-update nodes-to-create existing-nodes-map]
         (hb-split-existing-
           (get-node-index index-manager (first (:indices data)))
           (:nodes-update-or-create data)
           exact-ids)
-        
+
         ; Add nodes-update here
         created-nodes-map (hb-create-nodes-
                             db
-                            (distinct 
+                            (distinct
                               (reduce
                                 into
                                 [
@@ -429,20 +424,20 @@
                                  (:nodes data)
                                  (:nodes-create data)
                                  nodes-to-create])))
-        
+
         ; Make nodes
         nodes-map         (doall
                             (merge ; Order is important here, the nodes just created should always be added last (in case they weren't part of update-or-create)
                                     existing-nodes-map
-                                    (hb-get-node-ids- 
+                                    (hb-get-node-ids-
                                       (get-node-index index-manager (first (:indices data)))
                                       (:nodes-update data))
-                                    (hb-query-ids- 
+                                    (hb-query-ids-
                                       (get-node-index index-manager (first (:indices data)))
                                       index-targets)
                                     created-nodes-map))]
-        
-    
+
+
     ; Update nodes as necessary....
     (doseq [[properties labels] (concat nodes-to-update (:nodes-update data))]
       (if-let [node-id (get nodes-map (get properties "id"))]
@@ -460,9 +455,9 @@
           (println properties)
           (println (:indices data))
           (println (keys data)))))
-          
-    
-    
+
+
+
 
     ; TODO: Add updated nodes updated properties to index with .updateOrAdd
     (doseq [^BatchInserterIndex idx (map (partial get-node-index index-manager) (:indices data))]
@@ -477,21 +472,21 @@
     (doseq [^BatchInserterIndex idx (map (partial get-fulltext-node-index index-manager) (:fulltext-indices data))]
       (doseq [[val node-id] created-nodes-map]
         (.add idx node-id {"id" val}))
-      
+
         ; .add if exists
         ; note
         ; gene
         ; description
         ; gene_symbol
         ; protein_definition_header
-        
+
       (.flush idx))
-    
+
     (doseq [[rel-type start end properties] (:rels data)]
-      
+
       (when
         (not
-          (and 
+          (and
             (or (string? start) (integer? start) (vector? end))
             (or (string? end) (integer? end) (vector? end))))
         (println "Error with relationship")
@@ -500,30 +495,30 @@
         (println end)
         (println properties)
         (System/exit 99))
-        
-      
+
+
       (let [start-node (cond
                          (integer? start) start
                          (string? start) (get nodes-map start)
-                         (vector? start) (some 
+                         (vector? start) (some
                                            (fn [x]
                                              (get nodes-map x))
                                            start))
-            
+
             end-node (cond
                        (integer? end) end
                        (string? end) (get nodes-map end)
-                       (vector? end) (some 
+                       (vector? end) (some
                                          (fn [x]
                                            (get nodes-map x))
                                          end))]
-        
+
         (when (string? end-node)
           (println "Still a string!")
           (println end-node)
           (println (get nodes-map end-node))
           (System/exit 99))
-        
+
         (if (and start-node end-node)
           (create-rel ; if conditions above are true
                       db
@@ -534,12 +529,12 @@
 ;        (do ; if conditions above are false
 ;          (if (and (string? start) (not (get nodes-map start)))
 ;           (println start "not found! Start of rel"))
-;          (if 
+;          (if
 ;            (and (string? end) (not (get nodes-map end)))
-;            (println end "not found! End of rel...  Found:" 
-;                     (get nodes-map end) 
-;                     "Found:" (get nodes-map (clojure.string/trim end)) 
-;                     "index-targets:" (count index-targets) 
+;            (println end "not found! End of rel...  Found:"
+;                     (get nodes-map end)
+;                     "Found:" (get nodes-map (clojure.string/trim end))
+;                     "index-targets:" (count index-targets)
 ;                     "nodes-map:" (count nodes-map)
 ;                     "nodes-map:" (class nodes-map)
 ;                     )))))
@@ -548,11 +543,11 @@
 (def batchdb-server
   (reify Server
     (init [this]) ; No longer doing anything here
-    
-    (handle-call 
+
+    (handle-call
       [this from id message]
       (case (first message)
-        :connect (let 
+        :connect (let
                    [[db_path memory] (rest message)]
                    (println "Starting Database at" db_path "with" memory)
                    (let [db (org.neo4j.unsafe.batchinsert.BatchInserters/inserter
@@ -561,22 +556,22 @@
                                "dbms.pagecache.memory" memory
                                "dump_configuration"  "true"
                                "cache_type"   "soft"})
-                               
+
                          index-manager (org.neo4j.index.lucene.unsafe.batchinsert.LuceneBatchInserterIndexProvider. db)]
-                         
-                     (set-state! (merge 
-                                   @state 
+
+                     (set-state! (merge
+                                   @state
                                    {:db db
                                     :index-manager index-manager
                                     :mapping {}}))))
-                                    
-        
+
+
         :load-mapping (let [[mapping-file] (rest message)]
-                        (set-state! 
+                        (set-state!
                           (merge
                             @state
-                            {:mapping 
-                             (into 
+                            {:mapping
+                             (into
                                {}
                                (with-open [rdr (clojure.java.io/reader mapping-file)]
                                  (doall
@@ -586,12 +581,12 @@
         ; Exclusively for debugging purposes...
         :get-db (let [dbd (:db @state)]
                   dbd)
-        
-        :get-node-index 
-                  (let [[index-name] (rest message)
-                        index-manager (:index-manager @state)
-                        idx (get-node-index index-manager index-name)]
-                    idx)
+
+        :get-node-index
+                (let [[index-name] (rest message)
+                      index-manager (:index-manager @state)
+                      idx (get-node-index index-manager index-name)]
+                  idx)
 
       ; Main place where things will happen
        :batch
@@ -601,58 +596,58 @@
              mapping       (:mapping @state)]
          (handle-batch db index-manager mapping batch-package))
       ;[]) ; Return something so it doesn't block forever
-      
+
        :node (let [[^java.util.Map node-properties node-labels] (rest message)
                    ^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)]
-                  
+
                (println "DB:" db)
                (println "Props:" node-properties)
                (println "Labels:" node-labels)
                (reply! from id (.createNode db node-properties node-labels))
                nil)
-      
+
        :rel (do (reply! from id "not yet"))
-      
-       :query-properties 
+
+       :query-properties
        (let [[data] (rest message)
              index-name (:index data)
              index-manager (:index-manager @state)
              idx (get-node-index index-manager index-name)
              ^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)]
-            
+
          (doall
-           (filter 
+           (filter
              identity
              (for [id (:query data)]
                (if-let [results (query-index idx id)]
                  (let [results-fn (if (:results-fn data) (:results-fn data) identity)]
-                   [id 
+                   [id
                     ((:results-fn data)
                      (.getNodeProperties
                        db
                          (if (:filter-fn data)
-                           (some (fn [node-id] ((:filter-fn data) 
-                                                node-id 
-                                                 (.getNodeProperties db node-id)
-                                                 (map 
-                                                   (fn [x] (.name x)) 
-                                                   (.getNodeLabels db node-id)))) 
+                           (some (fn [node-id] ((:filter-fn data)
+                                                node-id
+                                                (.getNodeProperties db node-id)
+                                                (map
+                                                  (fn [x] (.name x))
+                                                  (.getNodeLabels db node-id))))
                                  results)
                            (first results))))]))))))
-      
+
        :query (let [[data] (rest message)
                     index-name (:index data)
                     index-manager (:index-manager @state)
                     idx (get-node-index index-manager index-name)
                     ^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)]
-                   
-               
+
+
                 (.flush idx)
-               
+
                 (debug "Query called, using " (:index data))
-               
+
                 (doall
-                  (filter 
+                  (filter
                     identity
                     (for [id (:query data)]
                       (if-let [results (query-index idx id)]
@@ -662,39 +657,39 @@
                          ;(query-index idx ((:alt-id-fn data) id))))]
                        [id
                              (if (:filter-fn data)
-                               (first (filter (fn [node-id] ((:filter-fn data) 
-                                                             node-id 
-                                                              (.getNodeProperties db node-id)
-                                                              (map (fn [x] (.name x)) (.getNodeLabels db node-id)))) results))
+                               (first (filter (fn [node-id] ((:filter-fn data)
+                                                             node-id
+                                                             (.getNodeProperties db node-id)
+                                                             (map (fn [x] (.name x)) (.getNodeLabels db node-id)))) results))
                                (first results))])))))
-      
+
        (reply-error! from id "Invalid call sent")))
-    
+
     (handle-cast [this from id message]
       (case (first message)
         :node (let [[node-promise node-properties node-labels] (rest message)]
                 (deliver node-promise (create-node (:db @state) node-properties node-labels))
                 nil)
-        
+
         ; Create rel does not return anything
         :rel (let [[start end rel-type rel-properties] (rest message)]
                (create-rel (:db @state) start end rel-type rel-properties)
                nil)
-        
+
         ; Add label to node
         :add-labels-to-node
         (let [[node-id labels] (rest message)
               ^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)]
-          (.setNodeLabels 
+          (.setNodeLabels
             db
             node-id
-            (into-array org.neo4j.graphdb.Label 
+            (into-array org.neo4j.graphdb.Label
                         (distinct
-                          (reduce 
+                          (reduce
                             into []
                             [(.getNodeLabels db node-id)
                              labels])))))
-        
+
         ; Most batch processes go here
         :batch
         (let [[batch-package] (rest message)
@@ -702,35 +697,35 @@
               mapping       (:mapping @state)
               index-manager (:index-manager @state)]
           (handle-batch db index-manager mapping batch-package))
-        
+
         ; Now create the rels
         ;                  (doseq [[rel-type start end properties] (:rels batch-package)]
-        ;                    (create-rel 
-        ;                      (:db @state) 
+        ;                    (create-rel
+        ;                      (:db @state)
         ;                      (if (string? start) (get nodes start) start)
         ;                      (if (string? end) (get nodes end) end)
         ;                      rel-type
         ;                      properties))))
-        
+
         (println "Invalid message: " (first message))))
-    
+
     (handle-info [this message])
-    
+
     (handle-timeout [this]
       (println "Timeout!"))
-    
+
     (terminate [this cause]
       (println "Shutting down")
       (println cause)
       (let [^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)
             ^LuceneBatchInserterIndexProvider index-manager (:index-manager @state)]
-            
+
         (.shutdown db)
         (.shutdown index-manager))
       (set-state! (merge @state {:db nil})))))
 
 (defn connect [db_path memory]
-  (reset! 
+  (reset!
     db
     (spawn
       :name "batchdb-server"
@@ -738,7 +733,7 @@
       :overflow-policy :block
       (gen-server
         batchdb-server)))
-  
+
   (call! @db [:connect db_path memory]))
 
 (defn load-mapping [mapping-file]
@@ -755,7 +750,7 @@
 
 (defn- convert-map
   [m]
-  (into 
+  (into
     {}
     (r/foldcat
       (r/map
@@ -772,7 +767,7 @@
   [nodes]
   (r/foldcat
     (r/map
-      (fn convert-nodes 
+      (fn convert-nodes
         [[n l]]
         [(convert-map n) (into-array org.neo4j.graphdb.Label l)])
       nodes)))
@@ -780,11 +775,11 @@
 (defn convert-rels
   [rels]
   (r/foldcat
-    (r/remove 
+    (r/remove
       (fn [[rel-type start end props]]
         (or (nil? start) (nil? end)))
       (r/map
-        (fn convert-rels 
+        (fn convert-rels
           [[rel-type start end properties]]
           [rel-type start end (convert-map properties)])
         rels))))
@@ -821,7 +816,7 @@
 
 (defn add-labels-to-node
   [node-id labels]
-  (cast! 
+  (cast!
     @db
     :add-labels-to-node
     node-id
@@ -831,7 +826,7 @@
   [batch-package]
   (info "Batch Job, Indices: " (:indices batch-package))
   (info "Batch Job, Rels: " (count (:rels batch-package)))
-  
+
   (if-not (nil? @db)
     (let [new-nodes                  (future (doall (convert-nodes (distinct (:nodes batch-package)))))
           new-nodes-update-or-create (future (doall (convert-nodes (distinct (:nodes-update-or-create batch-package)))))
@@ -851,15 +846,15 @@
                       :indices                (add-main-idx (into [] (:indices batch-package)))
                       :fulltext-indices       (add-main-ft-idx (into [] (:fulltext-indices batch-package))))
               persistent!)]
-              
-        
-      (cast! 
-        @db 
+
+
+      (cast!
+        @db
         :batch
-        (merge 
+        (merge
           {:new-ids             (distinct (get-ids-in-batch (:nodes updated-package)))
            :index-targets       (identify-index-targets updated-package)}
-             
+
           updated-package)))
     (println "DB not connected")))
 
@@ -880,15 +875,15 @@
                       :indices                (add-main-idx (into [] (:indices batch-package)))
                       :fulltext-indices       (add-main-ft-idx (:fulltext-indices batch-package)))
               persistent!)]
-              
-        
+
+
       (call!
-        @db 
+        @db
         :batch
-        (merge 
+        (merge
           {:new-ids             (distinct (get-ids-in-batch (:nodes updated-package)))
            :index-targets       (identify-index-targets updated-package)}
-             
+
           updated-package)))
     (println "DB not connected")))
 
@@ -897,7 +892,7 @@
   [batch-package]
   (if-not (nil? @db)
       (call! ; Causes this to wait until a response is available...
-        @db 
+        @db
         (:action batch-package)
         batch-package)
     (println "DB not connected")))
@@ -906,14 +901,13 @@
   (Thread/sleep 10000)
   (info "Batch Database Shutdown Started")
   (shutdown! @db)
-  (p/join @db)
   (reset! db nil)
   (info "Batch Database Shutdown Complete"))
 
 ; TODO: Index-manager actor!
 
  ; TODO: Create pre-processing environment
-; 
+;
 ; {:nodes = nodes to add
 ;  :rels = rels to add (check if ID is in nodes or if we must hit the index, delete if not found at all)
 ;  :indices = indices to add these nodes and descriptions too, the first one is considered the primary index for these nodes (otherwise main index)

@@ -8,16 +8,15 @@
     [odg.db-handler :as dbh]
     [clojure.core.reducers :as r]))
 
-
 ;#biotools.expasy.ENZYME
 ;{
-; :id "1.1.1.1", 
-; :definition "Alcohol dehydrogenase.", 
-; :alternate-name nil, 
-; :catalytic-activity "(1) An alcohol + NAD(+) = an aldehyde or ketone + NADH. (2) A secondary alcohol + NAD(+) = a ketone + NADH.", 
-; :cofactors "Zn(2+) or Fe cation.", 
-; :comments "-!- Acts on primary or secondary alcohols or hemi-acetals with very broad specificity; however the enzyme oxidizes methanol much more poorly than ethanol. -!- The animal, but not the yeast, enzyme acts also on cyclic secondary alcohols.", 
-; :prosite nil, 
+; :id "1.1.1.1",
+; :definition "Alcohol dehydrogenase.",
+; :alternate-name nil,
+; :catalytic-activity "(1) An alcohol + NAD(+) = an aldehyde or ketone + NADH. (2) A secondary alcohol + NAD(+) = a ketone + NADH.",
+; :cofactors "Zn(2+) or Fe cation.",
+; :comments "-!- Acts on primary or secondary alcohols or hemi-acetals with very broad specificity; however the enzyme oxidizes methanol much more poorly than ethanol. -!- The animal, but not the yeast, enzyme acts also on cyclic secondary alcohols.",
+; :prosite nil,
 ; :swiss-prot nil
 ; }
 
@@ -32,15 +31,13 @@
          (for [entry (expasy/parse rdr)]
            [(into {} (filter val (merge entry {:id (str "EC:" (:id entry))})))
             [(batch/dynamic-label "EC") (batch/dynamic-label "ENZYME")]])))}))
-        
-      
+
+
 
 (defn import-cli
   ;;; [config options args]
   [config opts args]
 
   ;(batch/connect (get-in config [:global :db_path]) (:memory opts))
-  
+
   (import-enzyme (first args)))
-
-

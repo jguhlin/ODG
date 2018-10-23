@@ -2,7 +2,6 @@
   (:gen-class :main true)
   (:require clojure.java.io
             clojure.string
-            [co.paralleluniverse.pulsar.core :as p]
             [clojure.core.reducers :as r]
             [cheshire.core :refer :all]
             [odg.assembly :as assembly]
@@ -27,16 +26,16 @@
             [odg.biogrid :as biogrid]
             [biotools.psimitab25 :as psimitab]
             [odg.variants :as variants]
-            [odg.query-server :as query-server]
-            ))
+            [odg.query-server :as query-server]))
+
 
 (set! *warn-on-reflection* true)
 
 (timbre/refer-timbre)
-(timbre/set-config! {:appenders 
-                     {:standard-out 
+(timbre/set-config! {:appenders
+                     {:standard-out
                       {:enabled? false}
-                      :spit 
+                      :spit
                       {:enabled? true
                        :async? true
                        :spit-filename "log/run.log"
@@ -104,8 +103,8 @@
           ["--split-jobs-cmd" "--split-jobs-cmd" "Prepend specified command - helps with batching jobs -- may specify [N] to substitute process ID (0 based)" :default nil]
           ["--at-a-time" "--at-a-time" "Run up to N number of jobs at a time using BASH shell's built in mechanism - Not for use with --pbs or --split-jobs" :default nil :parse-fn #(read-string %)]
           ["--pbs" "--pbs" "Set to run in PBS environment, use with --split-jobs" :default false :flag true]
-          ["--header" "--header" "Set header for generated scripts. Default: scripts/pbs/header.txt when --pbs is set, otherwise nil" :default nil]
-          )]
+          ["--header" "--header" "Set header for generated scripts. Default: scripts/pbs/header.txt when --pbs is set, otherwise nil" :default nil])]
+
     (when (:help options)
       (-help banner))
 
@@ -129,8 +128,8 @@
 
         "import-fasta" (do
                          (if (nil? (:species options)) (-help banner "Species is blank. Define with -s option."))
-                         (if (nil? (:version options)) (-help banner "Version is blank. Define with -v option."))
-			);(assembly/import-fasta-cli @config options (rest args)))
+                         (if (nil? (:version options)) (-help banner "Version is blank. Define with -v option.")))
+      ;(assembly/import-fasta-cli @config options (rest args)))
         "anchor-blast" (do
                          ; Explain that this is blastn only!
                          (if (not (:species options)) (-help banner "Species is blank. Define with -s option."))
@@ -144,7 +143,7 @@
                                      (if (not (:second-species options)) (-help banner "Second species is blank. Define with -s2 option."))
                                      (if (not (:second-version options)) (-help banner "Second version is blank. Define with -v2 option."))
                                      (blast/import-annotation-blastn @config options (rest args)))
-        "import-blastp" 
+        "import-blastp"
                           ; Need to document this one yet!
                           ;(if (not (:species options)) (-help banner "Species is blank. Define with -s option."))
                           ;(if (not (:version options)) (-help banner "Version is blank. Define with -v option."))
@@ -153,8 +152,8 @@
                           (blast/import-blastp-cli @config options (rest args))
         "import-fpkm-values" (do
                                (if (not (:species options)) (-help banner "Species is blank. Define with -s option."))
-                               (if (not (:version options)) (-help banner "Version is blank. Define with -v option."))
-				)
+                               (if (not (:version options)) (-help banner "Version is blank. Define with -v option.")))
+
 ;                               (expression/parse-cli @config options (rest args)))
 
         ; TYPE no longer needed for import-obo
@@ -187,9 +186,9 @@
         "create-scripts" (scripts/create @config options (rest args))
         "import-po-associations" (ontologies/associations-cli @config options (rest args))
         "import-biogrid" (biogrid/import-cli @config options (rest args))
-        
+
         "test-import" (gen-database/test-import)
-        
+
         ; Query Fn's
 
         "query-tassel" (query/query-tassel @config options (rest args))
@@ -204,8 +203,8 @@
         "get-ipr-terms-all-genes" (query/ipr-terms-all-genes @config options (rest args))
         "get-pfam-domains-all-genes" (query/pfam-domains-all-genes @config options (rest args))
         "list-species" (query/print-species @config options)
-        "annotate-species-blast" (query/annotate-genes-blast-hits @config options (rest args)) 
-        
+        "annotate-species-blast" (query/annotate-genes-blast-hits @config options (rest args))
+
         ; Testing Fn's
         "calculate-correlations" (expression/calculate-correlations @config (:species options) (:version options) (nth args 1) (nth args 2))
 

@@ -4,13 +4,13 @@
             [me.raynes.fs :as fs]
             [liberator.core :refer [resource defresource]]
             [ring.middleware.params :refer [wrap-params]]
-            [ring.adapter.jetty :refer [run-jetty]]      
+            [ring.adapter.jetty :refer [run-jetty]]
             [compojure.core :refer [defroutes ANY GET POST]]
             [compojure.route :as route]
-            [ring.util.response :as resp]
-            ))
+            [ring.util.response :as resp]))
 
-; command for interproscan 
+
+; command for interproscan
 ; interproscan.sh -i test_proteins.fasta -f tsv --iprlookup --goterms --pathways
 
 ; Utility fn
@@ -18,7 +18,7 @@
 
 (defn first-non-blank [coll]
   (first
-    (remove 
+    (remove
       clojure.string/blank?
       coll)))
 
@@ -29,8 +29,8 @@
 
 (defn filter-fasta-files
   [contents]
-  (filter 
-    #(re-find #"(fa|fasta|fna|faa)$" %) 
+  (filter
+    #(re-find #"(fa|fasta|fna|faa)$" %)
     contents))
 
 (defn filter-gff-files
@@ -39,21 +39,21 @@
 
 (defn- guess
   [re contents]
-  (first 
-    (filter 
-      #(re-find re %) 
+  (first
+    (filter
+      #(re-find re %)
       contents)))
-  
+
 (defn guess-protein-file
   [contents]
-  (guess 
-    #"(protein|peptide|pep|prot)"  
+  (guess
+    #"(protein|peptide|pep|prot)"
     (filter-fasta-files contents)))
 
 (defn guess-assembly-file
   [contents]
   (guess
-    #"(assembly|asm|pseudomol|genome).+(fa|fasta|fna)" 
+    #"(assembly|asm|pseudomol|genome).+(fa|fasta|fna)"
     (filter-fasta-files contents)))
 
 (defn guess-annotation-file
@@ -66,11 +66,11 @@
 
 (defn guess-pathway-file
   [contents]
-  (guess 
+  (guess
     #"(pathways|cyc)"
     contents))
 
-; ["ScS288C", "mirBase", "PO", "GO", "Mt3.0", "Lj2.5", "Gm1.1", "dbs", "misc", "SM", "At10", "Mt4.0", "Zm181", "results", "biogrid", "Os204", "Pv218", "Mt3.5v5", "Mt3.5", "Pt210"] 
+; ["ScS288C", "mirBase", "PO", "GO", "Mt3.0", "Lj2.5", "Gm1.1", "dbs", "misc", "SM", "At10", "Mt4.0", "Zm181", "results", "biogrid", "Os204", "Pv218", "Mt3.5v5", "Mt3.5", "Pt210"]
 
 ; Find files by name
 (defn find-file
@@ -83,13 +83,13 @@
       (.toString file)
       (re-pattern (java.util.regex.Pattern/quote (str (.toString fs/*cwd*) java.io.File/separator)))
       "")
-    ""
-    ))
+    ""))
+
 
 (defn find-mirbase
   [dir]
-  (find-file dir #"hairpin\.fa")) 
-  
+  (find-file dir #"hairpin\.fa"))
+
 (defn find-go
   [dir]
   (first-non-blank
@@ -135,34 +135,34 @@
        :computed-name (str abbreviation " " version)
        :description ""
        :tags ""
-       :key (fs/base-name dir)
-       })))
+       :key (fs/base-name dir)})))
+
 
 (defn guess-genomes
   [dir]
-  (sort-by 
+  (sort-by
     :computed-name
-    (map 
+    (map
       determine-genome
       (map
         (fn [x]
           (if (fs/absolute? x)
             x
             (str dir "/" x)))
-        (remove 
+        (remove
           (fn [x] (#{"biogrid" "dbs" "mirBase" "results" "misc" "GO" "PO"} x))
           (map fs/base-name
                (filter fs/directory?
                        (fs/list-dir dir))))))))
 
-(defn best-guess 
+(defn best-guess
   [dir]
   {:genomes (guess-genomes dir)})
 
 (defn load-existing
   [config-file]
   (reset!
-    config 
+    config
     (if (fs/file? config-file)
       (parse-stream (clojure.java.io/reader config-file) true)
       (do
@@ -177,10 +177,10 @@
           :PO (find-po "data")
           :MI (find-mi "data")
           :ENZYME (find-ENZYME "data")
-          :DOMINE (find-DOMINE "data")
-          }
-         :genomes (guess-genomes "data")
-         }))))
+          :DOMINE (find-DOMINE "data")}
+
+         :genomes (guess-genomes "data")}))))
+
 
 (defn save
   [data]
@@ -200,28 +200,28 @@
   (into
     {}
     (map
-      (fn [x] 
+      (fn [x]
         {(str "data/" x) (sort (map #(.getName %) (fs/list-dir (str "data/" x))))})
-      (filter 
+      (filter
         #(fs/directory? (str "data/" %))
-        (map 
-          #(.getName %) 
-            (fs/list-dir dir))))))
+        (map
+          #(.getName %)
+           (fs/list-dir dir))))))
 
 (defresource get-config
   :available-media-types ["text/json" "application/json"]
   :handle-ok (fn [_] (generate-string @config)))
 
 (defroutes app
-  (ANY  "/isnew" [] (resource 
+  (ANY  "/isnew" [] (resource
                       :available-media-types ["text/json" "application/json"]
                       :handle-ok (generate-string @is-new?)))
-  (ANY  "/best-guess" [] (resource 
-               :available-media-types ["text/json" "application/json"]
-               :handle-ok (fn [_] (generate-string (best-guess "data")))))
+  (ANY  "/best-guess" [] (resource
+                          :available-media-types ["text/json" "application/json"]
+                          :handle-ok (fn [_] (generate-string (best-guess "data")))))
   (ANY  "/data" [] (resource
-               :available-media-types ["text/json" "application/json"]
-               :handle-ok (fn [_] (generate-string (get-files "data")))))
+                    :available-media-types ["text/json" "application/json"]
+                    :handle-ok (fn [_] (generate-string (get-files "data")))))
   (ANY  "/species" [] (resource
                         :available-media-types ["text/json" "application/json"]
                         :handle-ok (generate-string (:species @config))))
@@ -229,8 +229,8 @@
   (GET  "/" [] (resp/redirect "/index.html"))
   (POST "/save" [data] (fn [a] (save data)))
   (POST "/save_and_quit" [data] (fn [a] (save data) (Thread/sleep 5000) (System/exit 0)))
-  (route/resources "/" {:root "config"})
-  )
+  (route/resources "/" {:root "config"}))
+
 
 (defn wrap-exception [f]
   (fn [request]
@@ -239,27 +239,27 @@
          {:status 500
           :body (str "Exception caught:" (.getMessage e))}))))
 
-(def handler 
-  (-> app 
+(def handler
+  (-> app
       (wrap-params)
-      (wrap-exception)))  
+      (wrap-exception)))
 
-(defn start-server 
+(defn start-server
   [opts args]
-  
+
   (reset! config-file (:config opts))
-  
+
   (load-existing @config-file)
- 
+
   (println "Server starting on port 33333")
   (println "Visit http://localhost:33333 in your web browser to continue")
   (run-jetty #'handler {:port 33333}))
 
 (defn dev-init
   []
-  
+
   (def opts {:config "config.json"})
-  
+
   (reset! config-file (:config opts))
-  
+
   (load-existing @config-file))

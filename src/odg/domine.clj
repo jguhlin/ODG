@@ -16,7 +16,7 @@
   (info "DOMINE Interactions: Begun")
   (with-open [rdr (clojure.java.io/reader file)]
     (let [interactions (line-seq rdr)
-          result (apply 
+          result (apply
                    merge-with
                    concat
                    (for [interaction-record interactions
@@ -25,11 +25,10 @@
                              [
                               (if (= pfam1 pfam2)
                                 (db/dynamic-rel "SELF_INTERACTION")
-                                (db/dynamic-rel "INTERACTION")) 
+                                (db/dynamic-rel "INTERACTION"))
                               (str "PFAM:" pfam1)
                               (str "PFAM:" pfam2)
-                              {:src "DOMINE" :confidence confidence}]
-                             ]}))]
+                              {:src "DOMINE" :confidence confidence}]]}))]
+
       (dbh/submit-batch-job {:rels (doall (:rels result))})))
   (info "DOMINE Interactions: Job submitted"))
-  

@@ -8,9 +8,8 @@
             [odg.batch :as batch]
             [incanter.stats :as stats]
             [taoensso.timbre :as timbre]
-            [co.paralleluniverse.pulsar.core :as p]
-            [odg.db-handler :as dbh]
-            )
+            [odg.db-handler :as dbh])
+
   (:import [biotools.blast BlastHit]
            (org.neo4j.graphdb.index Index)
            (org.neo4j.unsafe.batchinsert BatchInserter
@@ -35,8 +34,8 @@
              :filter-min-id-pct min-id-pct
              :filter-min-alignment-pct min-alignment-pct
              :query-alignment-percent (float (:query-alignment-percent x))
-             :subject-alignment-percent (float (:subject-alignment-percent x))
-             })))
+             :subject-alignment-percent (float (:subject-alignment-percent x))})))
+
 
 
 ; Changing anchor-blast to now group-by :subject-id and create only 1 subject_id node and then connect
@@ -57,9 +56,9 @@
         labels [(batch/dynamic-label species)
                 (batch/dynamic-label (str species " " version))
                 (batch/dynamic-label type)
-                (batch/dynamic-label "Blast Result")]
-        ]
-        
+                (batch/dynamic-label "Blast Result")]]
+
+
     (println "Anchoring blast results for" species version)
     (with-open [rdr (clojure.java.io/reader results-file)]
       (let [blast-results (group-by
@@ -69,7 +68,7 @@
                                        {:note note :species species :version version :type type}
                                        min-id-pct
                                        min-alignment-pct)
-                              (blast/parse-reader 
+                              (blast/parse-reader
                                 min-id-pct
                                 min-alignment-pct
                                 rdr)))]
@@ -84,8 +83,8 @@
                                              :version version
                                              :type type
                                              :filter-min-id-pct min-id-pct
-                                             :filter-min-alignment-pct min-alignment-pct
-                                             }
+                                             :filter-min-alignment-pct min-alignment-pct}
+
                                             (when note {:note note}))}]]
           (doseq [blast-hit subject-results]
             ;(util/connect-landmarks
@@ -103,16 +102,16 @@
 
   ; Create DB connection
   ;(batch/connect (get-in config [:global :db_path]) (:memory opts))
-  
+
   (let [[min-id-pct min-alignment-pct results-file] args]
-    (anchor-blast 
-      (:species opts) 
-      (:version opts) 
-      (:type opts) 
-      (Float/parseFloat min-id-pct) 
-      (Float/parseFloat min-alignment-pct) 
-      results-file 
-      (:note opts)))) 
+    (anchor-blast
+      (:species opts)
+      (:version opts)
+      (:type opts)
+      (Float/parseFloat min-id-pct)
+      (Float/parseFloat min-alignment-pct)
+      results-file
+      (:note opts))))
 
 (defn- -blastn-filter-initial-best-match
   "Use with filter or r/filter.
@@ -140,8 +139,8 @@
                 subject-alignment-percent
                 alignment-length
                 query-length
-                subject-length
-                ]}
+                subject-length]}
+
         result]
     (try
       (if
@@ -235,10 +234,10 @@
   ; Create DB connection
   ;(batch/connect (get-in config [:global :db_path]) (:memory opts))
 
-  (let [[min-id-pct subject-align-min query-align-min results-file] args
-        
-        
-        ]
+  (let [[min-id-pct subject-align-min query-align-min results-file] args]
+
+
+
 
     (println "Importing blastn results for" (:species opts) (:version opts) "vs" (:second-species opts) (:second-version opts))
     (let [filtered-results (blast/parse-reader-via-reducer
@@ -310,17 +309,17 @@
   (= (:query-id data) (:subject-id data)))
 
 ; BLASTP need to calculate best hits (no matter how bad) for each gene, and reciprocal blast hits must be marked!
-(p/defsfn blastp-calc-query-results
+(defn blastp-calc-query-results
   [query-id query-bitscore-raw results-all]
-  
+
   (let [
-       query-bitscore (if (string? query-bitscore-raw)
-                         (read-string query-bitscore-raw)
-                         query-bitscore-raw)
-        
-       results         (reverse 
-                         (sort-by 
-                           :bitscore results-all))
+        query-bitscore (if (string? query-bitscore-raw)
+                          (read-string query-bitscore-raw)
+                          query-bitscore-raw)
+
+        results         (reverse
+                          (sort-by
+                            :bitscore results-all))
         bitscores       (into [] (map :bitscore results))
         mean            (incanter.stats/mean bitscores)
         n               (count results)
@@ -330,26 +329,26 @@
                           mean)
                           ; (+ mean sd)) ; Set cutoff to mean + sd
                          ; (- mean sd)) ; Cutoff is 1 SD below mean
-       good-hit-cutoff (float
-                          (cond ; if n <= 5, set the good hit cutoff at 0.5 * query-bitscore
-                           (<= n 5) (* 0.5 query-bitscore)
-                            (> n 5) (if (> (+ mean sd sd) query-bitscore)
-                                      (* 0.5 query-bitscore) ; 50% of query-bitscore if (+ mean sd sd) is higher than total possible
-                                      (+ mean sd sd))))  ; mean + sd + sd
-       top-hit-cutoff  (float
-                          (cond ; if n <= 5, set top-hit cutoff to 0.75 * query-bitscore
-                           (<= n 5) (* 0.75 query-bitscore) ; Including 1
-                           (>  n 5) (min 
-                                      (+ mean sd sd sd) ; mean + 3*sd
-                                      query-bitscore))) ; Or query bitscore if less than mean + 3*sd
-        
-       ]
+        good-hit-cutoff (float
+                           (cond ; if n <= 5, set the good hit cutoff at 0.5 * query-bitscore
+                            (<= n 5) (* 0.5 query-bitscore)
+                             (> n 5) (if (> (+ mean sd sd) query-bitscore)
+                                       (* 0.5 query-bitscore) ; 50% of query-bitscore if (+ mean sd sd) is higher than total possible
+                                       (+ mean sd sd))))  ; mean + sd + sd
+        top-hit-cutoff  (float
+                           (cond ; if n <= 5, set top-hit cutoff to 0.75 * query-bitscore
+                            (<= n 5) (* 0.75 query-bitscore) ; Including 1
+                            (>  n 5) (min
+                                       (+ mean sd sd sd) ; mean + 3*sd
+                                       query-bitscore)))] ; Or query bitscore if less than mean + 3*sd
+
+
 
     ; Loop through each result
    ; If bitscore >= mean record as a blastp hit (always! even if it matches another category too. This allows for more fine-grained numeric queries)
    ; If bitscore >= top-hit-cutoff record as a tophit, ELSE if bitscore >= good-hit-cutoff record as a good hit
    (doall ; Make non-lazy
-     (apply concat 
+     (apply concat
         (for [result results]
           (let [bitscore (if (string? (:bitscore result))
                           (read-string (:bitscore result))
@@ -370,17 +369,17 @@
                   (= bsr 1) [(:BLASTP_TOP_HIT db/rels) (:query-id result) (:subject-id result) data]
                   (>= bitscore top-hit-cutoff) [(:BLASTP_TOP_HIT db/rels) (:query-id result) (:subject-id result) data]
                   (>= bitscore good-hit-cutoff) [(:BLASTP_GOOD_HIT db/rels) (:query-id result) (:subject-id result) data]
-                  (>= bitscore mean-cutoff) [(:BLASTP_HIT db/rels) (:query-id result) (:subject-id result) data]
-                  )))))))))
+                  (>= bitscore mean-cutoff) [(:BLASTP_HIT db/rels) (:query-id result) (:subject-id result) data])))))))))
 
-(p/defsfn -bsr-calc
+
+(defn -bsr-calc
   "Calculate, store, and (somehwat) interpret the BLAST results -- Goal is to be blast program agnostic (or mostly)"
   [query-species query-version subject-species subject-version results-file]
 
   ; If a self BLAST we need to store the BLAST score for each
-  
+
   ; TODO: Store bitscore as BLAST program specific attribute
-  
+
   (info "-bsr-calc for" query-species query-version "vs" subject-species subject-version "from file" results-file)
 
   (let [self? (and (= query-species subject-species) (= query-version subject-version))
@@ -388,35 +387,35 @@
         query-index   (if self?
                         subject-index
                         (batch/convert-name query-species query-version))
-        
+
         ids            (r/foldcat
-                         (r/map 
-                           (juxt :query-id :subject-id) 
+                         (r/map
+                           (juxt :query-id :subject-id)
                            (blast/parse-reader-as-reducer results-file)))
-        
-        subject-ids     (doall 
-                          (distinct 
+
+        subject-ids     (doall
+                          (distinct
                             (map second ids)))
-        
-        query-ids       (doall 
+
+        query-ids       (doall
                           (distinct
                             (if self?
                               (concat (map first ids) subject-ids)
                               (map first ids))))
-        
+
         self-blasts     (when
                           self?
                           (r/foldcat
                             (r/map
                               (fn self-blasts [x]
                                 [(:query-id x) (:bitscore x)])
-                              (r/filter 
-                                -same-query-and-subject 
+                              (r/filter
+                                -same-query-and-subject
                                 (blast/parse-reader-as-reducer results-file)))))
-        
+
         bitscore        (if self?
                           (doall (into {} (for [[id score] self-blasts] {id score})))
-                          (into 
+                          (into
                             {}
                             (dbh/batch-get-data
                               {:index (batch/convert-name query-species query-version)
@@ -427,8 +426,8 @@
                                               id
                                               nil))
                                :results-fn (fn [x] (get x "bitscore"))})))
-        
-        query-nodes-ids  (into 
+
+        query-nodes-ids  (into
                            {}
                            (dbh/batch-get-data
                              {:index (batch/convert-name query-species query-version)
@@ -437,12 +436,12 @@
                               :filter-fn (fn [id properties labels]
                                            (if (some (hash-set "mRNA" "Protein" "Gene") labels)
                                              id
-                                             nil))
-                              }))
-        
+                                             nil))}))
+
+
         subject-nodes-ids (if self?
                             query-nodes-ids
-                            (into 
+                            (into
                               {}
                               (dbh/batch-get-data
                                 {:index (batch/convert-name subject-species subject-version)
@@ -451,9 +450,9 @@
                                  :filter-fn (fn [id properties labels]
                                               (if (some (hash-set "mRNA" "Protein" "Gene") labels)
                                                 id
-                                                nil))})))
-        ]
-    
+                                                nil))})))]
+
+
     (when self?
       (dbh/submit-batch-job
         (doall
@@ -461,32 +460,32 @@
            :comment (str "Store bitscores -- Self BLAST -- for " query-species " " query-version)
            :nodes-update
            (into []
-                 (map 
-                   (fn update-nodes-store-self-bitscore 
+                 (map
+                   (fn update-nodes-store-self-bitscore
                      [[id score]]
                      [{:id id
-                       :bitscore score} 
+                       :bitscore score}
                       [(batch/dynamic-label "BlastP")]]) ; Replace BLASTP with variable later, perhaps "program" ?
                    self-blasts))})))
-    
+
     ; Calculate the BSR for each protein (store with the mRNA node type)
-    
+
     ; If self blast comparison, remove BLAST results from same Gene ID (when multiple transcripts)
     (with-open [rdr (clojure.java.io/reader results-file)]
       (let [get-bitscore-fn    (fn [x] (get bitscore x))
-            
-            comparative-blasts (partition-by 
-                                 :query-id 
+
+            comparative-blasts (partition-by
+                                 :query-id
                                  (if self?
                                    (remove ; For self-blasts, do not store BLAST hits between alt. transcripts -- Not perfect
                                            (fn [x]
-                                             (= 
-                                               (util/remove-transcript-id (:query-id x)) 
+                                             (=
+                                               (util/remove-transcript-id (:query-id x))
                                                (util/remove-transcript-id (:subject-id x))))
                                            (blast/parse-reader 5 10 10 rdr)) ; Use some minor filtering for self-blasts ; 5 10 10 is normal
                                    (blast/parse-reader rdr)))]
-        
-        (let [processed-batches 
+
+        (let [processed-batches
               (map
                 (fn process-batches [batch-set]
                   (sort-by
@@ -510,7 +509,7 @@
                                     bitscore
                                     results))))
                             batch-set))))))
-              (partition-all 10000 comparative-blasts))]
+               (partition-all 10000 comparative-blasts))]
 
           (doseq [entries processed-batches]
             (debug "BLAST Results Import")
@@ -518,7 +517,7 @@
             (dbh/submit-batch-job
               {:species query-species
                :version query-version
-               :comment (str "Store BLAST results for " query-species " " query-version " vs. " subject-species " " subject-version) 
+               :comment (str "Store BLAST results for " query-species " " query-version " vs. " subject-species " " subject-version)
                :rels entries
                :indices [(batch/convert-name query-species query-version)]}))))))
   (info "All BLAST jobs submitted"))
@@ -543,18 +542,17 @@
    ; Need to keep BSRs above mean of filtered hits
    ; Mark 2 std deviation's above as BLASTP_BEST_HIT
    ; Mark 1-2 std deviation's above as BLASTP_GOOD_HIT
-   
+
    ; TODO: A later step should infer orthologs/paralogs
    ; TODO: Check that we are not creating relationships between self
-   (info "Importing blastp results for" species version "vs" species2 version2)
+  (info "Importing blastp results for" species version "vs" species2 version2)
 
    ; Call -bsr-calc here, in the future -bsr-calc should be blast type independent (BLASTP, BLASTN, BLASTX, TBLASTN, etc..)
-   (-bsr-calc species version species2 version2 results-file))
+  (-bsr-calc species version species2 version2 results-file))
 
 
 (defn import-blastp-cli
-  [config opts args]
+  [config opts args])
   ; Create DB connection
   ;(batch/connect (get-in config [:global :db_path]) (:memory opts))
   ;(import-blastp (:species opts) (:version opts) (:second-species opts) (:second-version opts) (first args)))
-  )

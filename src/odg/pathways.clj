@@ -5,9 +5,8 @@
     [odg.db :as db]
     [odg.batch :as batch]
     [odg.util :as util]
-    [co.paralleluniverse.pulsar.core :as p]
-    [odg.db-handler :as dbh]
-    )
+    [odg.db-handler :as dbh])
+
   (:import
     (org.neo4j.unsafe.batchinsert BatchInserter
                                   BatchInserters
@@ -33,25 +32,25 @@
   [species version filename]
   (with-open [rdr (clojure.java.io/reader filename)]
     (let [data              (pmn-pathways/parse-reader rdr)
-          
+
           genes             (doall (map :gene-name data))
-          
+
           genes-in-database (into
                               {}
                               (dbh/batch-get-data
                                 {:index (batch/convert-name species version)
                                  :action :query
                                  :query genes}))
-          
+
           gid               (into #{} (keys genes-in-database))
-          
+
           rxns              (distinct (map :reaction-id data))
           pwys              (distinct (map (juxt :pathway-id :pathway-name) data))
           ecs               (distinct (map :EC data))
-          
+
           results
             (apply
-              merge-with 
+              merge-with
               concat
               {:nodes-update-or-create (concat
                                          (for [rxn rxns]
@@ -61,31 +60,31 @@
                                             [(batch/dynamic-label "Pathway")]])
                                          (for [ec ecs]
                                            [{:id (str "EC:" (get-ec-number ec))} [(batch/dynamic-label "EC")]]))}
-              
+
               ; Only do genes that exist in the database
               (for [row (filter (fn [x] (gid (:gene-name x))) data)]
-                {:nodes-update [[{:id (:gene-name row) 
-                                  :protein-name (:protein-name row) 
+                {:nodes-update [[{:id (:gene-name row)
+                                  :protein-name (:protein-name row)
                                   :protein-id (:protein-id row)}
                                  [(batch/dynamic-label "PATHWAY_ANNOTATION")]]]
-                 
-                 :rels (filter 
+
+                 :rels (filter
                          identity
                          [
                               [(:INVOLVED_IN db/rels) (:reaction-id row) (:pathway-id row)]
                               [(:PART_OF db/rels) (get genes-in-database (:gene-name row)) (:reaction-id row)]
                               (when (not (= "-" (:EC data)))
-                                [(:BELONGS_TO db/rels) (:reaction-id row) (str "EC:" (get-ec-number (:EC row)))])
-                              ])}))]
-      
+                                [(:BELONGS_TO db/rels) (:reaction-id row) (str "EC:" (get-ec-number (:EC row)))])])}))]
+
+
       ; Not certain why doall didn't work previously, but this forces it correctly.
       (dbh/submit-batch-job
         {:rels                   (doall (:rels results))
          :nodes-update           (doall (:nodes-update results))
          :nodes-update-or-create (doall (:nodes-update-or-create results))
-         :indices                [(batch/convert-name species version)]
-         }))))
-            
+         :indices                [(batch/convert-name species version)]}))))
+
+
 ; Init DB and parse data into the db
 (defn import-cli
   "Wrapper for internal command import-pathway, used to initialize the database."

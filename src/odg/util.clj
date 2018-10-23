@@ -3,7 +3,6 @@
     [odg.batch :as batch]
     [odg.db :as db]
     [taoensso.timbre :as timbre]
-    [co.paralleluniverse.pulsar.core :as p]
     clojure.core.memoize))
 
 (timbre/refer-timbre)

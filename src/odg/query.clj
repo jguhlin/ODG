@@ -9,8 +9,8 @@
     [taoensso.timbre :as timbre]
     [odg.db :as db]
     [odg.util :as util]
-    [ring.util.codec :as ruc]
-    )
+    [ring.util.codec :as ruc])
+
   (:import (org.neo4j.index.lucene QueryContext)))
 
 ; GO Terms for an entire species
@@ -25,13 +25,13 @@
     (fn
       []
       (db/query
-        (str 
+        (str
           "MATCH (x)
            UNWIND labels(x) AS y
            RETURN DISTINCT y ORDER BY y")
-        (into 
+        (into
           []
-          (map 
+          (map
             (fn [x]
               (get x "y"))
             results))))))
@@ -40,19 +40,19 @@
   (memoize
     (fn
       [species]
-      (if 
+      (if
         (or
           (clojure.string/blank? species)
           (= "main-ft" species))
         (get-all-labels)
         (db/query
-          (str 
+          (str
             "MATCH (x:`" species "`)
              UNWIND labels(x) AS y
              RETURN DISTINCT y ORDER BY y")
-          (into 
+          (into
             []
-            (map 
+            (map
               (fn [x]
                 (get x "y"))
               results)))))))
@@ -60,10 +60,10 @@
 (defn get-gene-definition-by-species
   []
   (db/query
-    "MATCH (n) WHERE (n:gene OR n:CDS) AND EXISTS(n.species) 
+    "MATCH (n) WHERE (n:gene OR n:CDS) AND EXISTS(n.species)
        RETURN DISTINCT n.species, n.version, COUNT(*) AS n ORDER BY n.species, n.version"
     (into [] (map
-               (fn [x] 
+               (fn [x]
                  [(str (get x "n.species") " " (get x "n.version"))
                   (get x "n")
                   ])
@@ -72,20 +72,20 @@
 ; Query fn's
 (defn get-species
   []
-  (db/query 
-    "MATCH (n) WHERE 
+  (db/query
+    "MATCH (n) WHERE
     (n:gene OR n:CDS)
     AND EXISTS(n.species) RETURN DISTINCT n.species AS id, n.version AS version ORDER BY id, version"
-    (into [] (map 
+    (into [] (map
                (fn [x] (str (get x "id") " " (get x "version")))
                results))))
 
 (defn enumerate-species
   []
   ; Database must be already connected
-  (let [species (sort 
+  (let [species (sort
                  (get-species))]
-    (zipmap (range 1 (inc (count species))) species))) 
+    (zipmap (range 1 (inc (count species))) species)))
 
 (defn print-species
   [config options]
@@ -105,13 +105,13 @@
                     WHERE id(x) = {id}
                     RETURN DISTINCT(i.definition) AS def"
     {"id" node-id}
-    
+
     (doall
       (map
         (fn [x]
           (get x "def"))
         results))))
-    
+
 
 (defnp get-node
   [id]
@@ -129,7 +129,7 @@
          "labels" (map (fn [y] (.name y)) (.getLabels n))
          "iprterms" iprterms
          "located_on" (.getProperty n "landmark" nil)
-         "relationships" (into [] 
+         "relationships" (into []
                              (take 500
                                        (for [r (.getRelationships n)]
                                          {:start (.getStartNode r)
@@ -148,14 +148,14 @@
 (defnp autocomplete
   ([index-name text]
     (db/with-tx db/*db*
-    
+
     (let [node-index (db/get-node-index index-name)
           query-text (str "id:*" (batch/dbquote text) "*")
-          query-context (.sort 
+          query-context (.sort
                           (QueryContext. query-text)
                           "id"
                           (into-array java.lang.String []))]
-      
+
       (into []
             (for [hit (take 10 (.query node-index query-context))]
               {"id" (.getProperty hit "id")
@@ -167,11 +167,11 @@
                "end" (.getProperty hit "end" nil)
                "located_on" (.getProperty hit "landmark" nil)
                })))))
-  
+
   ([index-name label text]
-    (if (= label "any") 
+    (if (= label "any")
       (autocomplete index-name text)
-      (let [match-string (if 
+      (let [match-string (if
                        (= "any" label)
                        ""
                        (str " MATCH (x:`" label "`)"))]
@@ -206,24 +206,24 @@
 
 (defnp find-by-id
   [index-name text]
-  
+
   (db/with-tx db/*db*
-    
+
     (let [node-index ^org.neo4j.kernel.impl.coreapi.LegacyIndexProxy (get-node-index index-name)
           query-text (str "id:*" (batch/dbquote text) "*")
-          query-context (.sort 
+          query-context (.sort
                           (QueryContext. query-text)
                           "id"
                           (into-array java.lang.String []))]
-      
+
       (if-let [hit (first (.query node-index query-context))]
         hit
         (warn "query/find-by-id " text " not found in " index-name)))))
 
-(defnp not-used [index-name text]    
-  (db/query 
+(defnp not-used [index-name text]
+  (db/query
     (str
-      "START x=node:`" index-name "`({q}) 
+      "START x=node:`" index-name "`({q})
        OPTIONAL MATCH (x)-[:LOCATED_ON*2]->(y)
        RETURN x, x.id AS id, x.note AS note, x.name AS name, x.type AS type, x.start AS start, x.end AS end, y.id AS located_on ORDER BY id LIMIT 50 ")
       {"q" (str "id:" "*" (batch/dbquote text) "*")}
@@ -241,13 +241,13 @@
 
 (defn search
   [index-name text label]
-  
-  (let [match-string (if 
+
+  (let [match-string (if
                        (= "any" label)
                        ""
                        (str " MATCH (x:`" label "`)"))]
-    
-  (db/query 
+
+  (db/query
     (str
       "START x=node:`" index-name "`({q}) "
       match-string "
@@ -274,41 +274,41 @@
 
 (defnp describe-relationships
   [node-id level]
-  (let [query 
+  (let [query
         (case level
           0 "MATCH (x)-[r1]-(x)
              WHERE id(x) = {id}
              RETURN TYPE(r1), labels(x) AS l1, COUNT(*) as cnt ORDER BY cnt DESC"
           1 "MATCH (x)-[r1]-(a)
              WHERE id(x) = {id}
-             RETURN TYPE(r1) AS r1, 
-                    labels(a) AS l1, 
-                    COUNT(*) AS cnt 
+             RETURN TYPE(r1) AS r1,
+                    labels(a) AS l1,
+                    COUNT(*) AS cnt
                   ORDER BY cnt DESC, r1"
           2 "MATCH (x)-[r1]-(a)-[r2]-(b)
              WHERE id(x) = {id}
-             RETURN TYPE(r1) AS r1, 
-                    labels(a) AS l1, 
-                    TYPE(r2) AS r2, 
-                    labels(b) AS l2, 
-                    COUNT(*) AS cnt 
+             RETURN TYPE(r1) AS r1,
+                    labels(a) AS l1,
+                    TYPE(r2) AS r2,
+                    labels(b) AS l2,
+                    COUNT(*) AS cnt
                   ORDER BY cnt DESC, r1"
           3 "MATCH (x)-[r1]-(a)-[r2]-(b)-[r3]-(c)
              WHERE id(x) = {id}
-             RETURN TYPE(r1) AS r1, 
-                    labels(a) AS l1, 
-                    TYPE(r2) AS r2, 
-                    labels(b) AS l2, 
-                    TYPE(r3) AS r3, 
-                    labels(c) AS l3, 
-                    COUNT(*) AS cnt 
+             RETURN TYPE(r1) AS r1,
+                    labels(a) AS l1,
+                    TYPE(r2) AS r2,
+                    labels(b) AS l2,
+                    TYPE(r3) AS r3,
+                    labels(c) AS l3,
+                    COUNT(*) AS cnt
                   ORDER BY cnt DESC, r1")]
     (let [query-results
           (db/query
             query
             {"id" (Integer/parseInt node-id)}
             (doall
-              (map 
+              (map
                 (fn [x]
                   {:cnt (get x "cnt")
                    :r1 (get x "r1")
@@ -318,14 +318,14 @@
                    :l2 (set (get x "l2"))
                    :l3 (set (get x "l3"))})
                 results)))
-          
+
           all-l1 (map :l1 query-results)
           all-l2 (map :l2 query-results)
           all-l3 (map :l3 query-results)
-          
+
           ; Removing common doesn't work typically, so calc frequencies and assign more unique ones a distinctive colors
           ; Revisit later
-          
+
           common-l1 (apply clojure.set/intersection all-l1)
           common-l2 (apply clojure.set/intersection all-l2)
           common-l3 (apply clojure.set/intersection all-l3)
@@ -346,7 +346,7 @@
 
 (defnp get-snp-effect
   [idx chr bp] ; idx not used until next database generation...
-(db/query 
+(db/query
     (str "START x=node:main(id={marker})
             WHERE x:VARIANT
             RETURN x as node")
@@ -365,20 +365,20 @@
 
 (defnp in-element?
   [idx chr bp]
-  (db/query 
-    (str "START x=node:" idx "(id={landmark}) 
-                    MATCH (x)-[:NEXT_TO*0..1]-()<-[r:LOCATED_ON]-(y) 
+  (db/query
+    (str "START x=node:" idx "(id={landmark})
+                    MATCH (x)-[:NEXT_TO*0..1]-()<-[r:LOCATED_ON]-(y)
                     WHERE
                       ((r.start >= {bp} AND r.end <= {bp}) OR (r.end >= {bp} AND r.start <= {bp}))
                     AND
                       NOT y:VARIANT
-                    RETURN 
-                      y as node, 
-                      y.id AS node_id, 
+                    RETURN
+                      y as node,
+                      y.id AS node_id,
                       y.type as `type`")
     {"landmark" (db/calculate-landmark chr bp) "bp" bp}
     (if (.hasNext (.iterator results))
-      (doall (map (fn [y] {:type (get y "type") 
+      (doall (map (fn [y] {:type (get y "type")
                            :id (get y "node_id")
                            :node (get y "node")}) results))
       '({:type "Intergenic"
@@ -389,16 +389,16 @@
 
 (defnp in-exon?
   [idx chr bp]
-  (db/query 
-    (str "START x=node:" idx "(id={ landmark }) 
+  (db/query
+    (str "START x=node:" idx "(id={ landmark })
                     MATCH (x)-[:NEXT_TO*0..1]-()<-[r:LOCATED_ON]-(g:gene)
-                    WHERE 
+                    WHERE
                       r.end >= { bp } AND r.start <= { bp }
                WITH g
                     MATCH (g)-[:PARENT_OF]->(:mRNA)-[:PARENT_OF]->(y:exon)
                     WHERE
                       y.end >= { bp } AND y.start <= { bp }
-                    RETURN 
+                    RETURN
                     y as node, y.id as id")
     {"landmark" (db/calculate-landmark chr bp) "bp" bp}
     (if (.hasNext (.iterator results))
@@ -408,14 +408,14 @@
 ; Not sure how to do this one yet...
 (defnp in-domain?
   [idx chr bp]
-  (db/query 
-    (str "START x=node:" idx "(id={ landmark }) 
+  (db/query
+    (str "START x=node:" idx "(id={ landmark })
                     MATCH (x)-[:NEXT_TO*0..1]-()-[r:LOCATED_ON]-(:gene)-[:PARENT_OF]->(:mRNA)-[:PARENT_OF]->(y:exon)
-                    WHERE 
+                    WHERE
                       r.end >= { bp } AND r.start <= { bp }
                     AND
                       y.end >= { bp } AND y.start <= { bp }
-                    RETURN 
+                    RETURN
                     y as node, y.id as id")
     {"landmark" (db/calculate-landmark chr bp) "bp" bp}
     (if (.hasNext (.iterator results))
@@ -425,7 +425,7 @@
 (defnp get-expression-conditions
   [species version]
   (db/query
-    (str 
+    (str
       "MATCH (x:ExpressionCondition)<-[:EXPRESSED]-(:`" species " " version  "`)
        RETURN DISTINCT(x) as x, x.id AS id")
     {}
@@ -435,17 +435,17 @@
 
 (defnp get-expression
   [node]
-  (let [id (cond 
+  (let [id (cond
              (= java.lang.Long (class node)) node
              :else (.getId node))]
-    (db/query 
+    (db/query
       (str "MATCH (x)-[:PARENT_OF*0..1]-()-[r:EXPRESSED]-(expcond)
-            WHERE id(x) = {id} 
-            RETURN 
+            WHERE id(x) = {id}
+            RETURN
                x, r.type AS type, r.FPKM as FPKM, expcond, expcond.id AS name")
       {"id" id}
       (if (.hasNext (.iterator results))
-        (doall (map (fn [y] 
+        (doall (map (fn [y]
                       {:name (get y "name")
                        :FPKM (get y "FPKM")
                        :node (get y "expcond")
@@ -457,10 +457,10 @@
 (defnp get-expression-correlations
   "Given a set of nodes or node IDs, find correlations between those nodes and return."
   [nodes]
-  
+
   ; (println (clojure.string/join ", " nodes))
-  
-  (let [node-ids (if 
+
+  (let [node-ids (if
                    (= java.lang.Long (class (first nodes))) nodes
                    (map #(.getId %) nodes))]
     (db/query
@@ -480,17 +480,17 @@
 
 (defnp get-goterms
   [node]
-  (let [id (cond 
+  (let [id (cond
              (= java.lang.Long (class node)) node
              :else (.getId node))]
-    (db/query 
+    (db/query
       (str "MATCH (x)-[:PARENT_OF|:HAS_PROTEIN*0..2]-()-[:HAS_ANALYSIS]-()-[:HAS_GOTERM]-(go:GO)
-            WHERE id(x) = {id} 
-            RETURN 
+            WHERE id(x) = {id}
+            RETURN
             DISTINCT(go) as go, go.name AS name, go.id as id, go.def as def")
       {"id" id}
       (if (.hasNext (.iterator results))
-        (doall (map (fn [y] 
+        (doall (map (fn [y]
                       {:name (get y "name")
                        :def (get y "def")
                        :node (get y "go")
@@ -502,17 +502,17 @@
 
 (defnp get-goterms-one-level-higher
   [node]
-  (let [id (cond 
+  (let [id (cond
              (= java.lang.Long (class node)) node
              :else (.getId node))]
-    (db/query 
+    (db/query
       (str "MATCH (x)-[:PARENT_OF*0..1]-()-[:HAS_ANALYSIS]-()-[:HAS_GOTERM]-()<-[:PART_OF]-(go)
             WHERE id(x) = {id}
-            RETURN 
+            RETURN
             DISTINCT(go) as go, go.name AS name, go.id as id, go.def as def")
       {"id" id}
       (if (.hasNext (.iterator results))
-        (doall (map (fn [y] 
+        (doall (map (fn [y]
                       {:name (get y "name")
                        :def (get y "def")
                        :node (get y "go")
@@ -525,16 +525,16 @@
 
 (defnp get-blastp-hits
   [node]
-  (let [id (cond 
+  (let [id (cond
              (= java.lang.Long (class node)) node
              :else (.getId node))]
     (db/query (str "
   MATCH (x)-[:HAS_PROTEIN|PARENT_OF*0..2]->()-[r:BLASTP_TOP_HIT|:BLASTP_GOOD_HIT|:BLASTP_HIT]-()<-[:HAS_PROTEIN|PARENT_OF*0..2]-(hit)
   WHERE  id(x) = {id}
          AND x <> hit
-         AND ( x.species <> hit.species OR (x.species = hit.species AND x.version = hit.version)) 
-RETURN 
-  DISTINCT(hit) as hit, 
+         AND ( x.species <> hit.species OR (x.species = hit.species AND x.version = hit.version))
+RETURN
+  DISTINCT(hit) as hit,
            hit.id AS id,
            ID(hit) AS hitid,
            ID(r) AS rid,
@@ -551,10 +551,10 @@ RETURN
            hit.version AS version
  ORDER BY r.bsr DESC")
       {"id" id}
-      
+
       (if (.hasNext (.iterator results))
         (doall
-          (map (fn [y] 
+          (map (fn [y]
                  {:id (get y "id")
                   :hit (get y "hit")
                   :key (str (get y "hitid") "." (get y "rid"))
@@ -570,21 +570,21 @@ RETURN
                   :bitscore (get y "r.bitscore")
                   :species (get y "species")
                   :version (get y "version")
-                       
+
                   })
                results))
         []))))
 
 (defnp get-poterms
   [node]
-  (db/query 
+  (db/query
     (str "MATCH (x)-[:PARENT_OF*0..1]->(:mRNA)-[:BLASTP_TOP_HIT]-(:`ARABIDOPSIS THALIANA`)<-[:PARENT_OF]-(:gene)-[:HAS_POTERM]-(po)
-          WHERE id(x) = {id} 
+          WHERE id(x) = {id}
           RETURN
           DISTINCT(po) as po, po.name AS name, po.id as id, po.def as def")
     {"id" (.getId node)}
     (if (.hasNext (.iterator results))
-      (doall (map (fn [y] 
+      (doall (map (fn [y]
                     {:name (get y "name")
                      :def (get y "def")
                      :node (get y "po")
@@ -595,14 +595,14 @@ RETURN
 
 (defnp get-top-blastp-hits
   [node]
-  (db/query 
+  (db/query
     (str "MATCH (x)-[:PARENT_OF*0..1]->(:mRNA)-[r:BLASTP_TOP_HIT]-(:mRNA)<-[:PARENT_OF]-(g:gene)
           WHERE id(x) = {id}
-          RETURN 
+          RETURN
           DISTINCT(g) AS g, g.id, g.species, g.version, r.bitscore ORDER BY r.bitscore")
     {"id" (.getId node)}
     (if (.hasNext (.iterator results))
-      (doall (map (fn [y] 
+      (doall (map (fn [y]
                     {:g (get y "g")
                      :id (get y "g.id")
                      :species (get y "g.species")
@@ -614,15 +614,15 @@ RETURN
 
 (defnp get-annotation-note
   [node]
-  (db/query 
+  (db/query
     (str "MATCH (x)-[:PARENT_OF*0..1]-(y)
           WHERE id(x) = {id} AND NOT(y.note IS NULL)
           RETURN DISTINCT( y.note ) AS note")
     {"id" (.getId node)}
     (if (.hasNext (.iterator results))
-      (into 
-        [] 
-        (map 
+      (into
+        []
+        (map
           (fn [y]
             (get y "note"))
           results))
@@ -630,27 +630,27 @@ RETURN
 
 (defnp find-nearest
   [idx chr bp]
-  (db/query 
-    (str 
+  (db/query
+    (str
       "START x=node:" idx "(id={landmark})
-       MATCH (x)-[:NEXT_TO*0..1]-()<-[r:LOCATED_ON]-(y) 
+       MATCH (x)-[:NEXT_TO*0..1]-()<-[r:LOCATED_ON]-(y)
        WHERE NOT y:VARIANT AND NOT (r.start IS NULL)
-       RETURN 
-         y as node, 
+       RETURN
+         y as node,
          MIN(ABS(r.start - { bp })) AS fsdist,
          r.start - { bp } AS start_dist,
          r.end - { bp } AS end_dist,
-         y.id AS node_id, 
+         y.id AS node_id,
          y.type as `type`
-       ORDER BY fsdist 
+       ORDER BY fsdist
        LIMIT 2") ; This has been removed:          MIN(ABS(r.start - { bp })) AS fedist,
     {"landmark" (db/calculate-landmark chr bp) "bp" bp}
     (if (.hasNext (.iterator results))
-      (doall (map (fn [y] {:type (get y "type") 
+      (doall (map (fn [y] {:type (get y "type")
                            :id (get y "node_id")
                            :start-distance (get y "start_dist")
                            :end-distance (get y "end_dist")
-                           :abs-distance (apply min (map (fn [a] (Math/abs a)) [(get y "end_dist") (get y "start_dist")]))  
+                           :abs-distance (apply min (map (fn [a] (Math/abs a)) [(get y "end_dist") (get y "start_dist")]))
                            :node (get y "node")}) results))
       '({:type "Error, most likely..."
          :id "Error probably"
@@ -662,21 +662,21 @@ RETURN
   [idx chr bp bprange]
   (let [lowbp (- bp bprange)
         highbp (+ bp bprange)]
-    (db/query 
-      (str 
+    (db/query
+      (str
         "START x=node:" idx "(id={landmark})
-       MATCH (x)-[:NEXT_TO*0..3]-()<-[r:LOCATED_ON]-(y) 
+       MATCH (x)-[:NEXT_TO*0..3]-()<-[r:LOCATED_ON]-(y)
        WHERE NOT (r.start IS NULL)
              AND ( (r.start > { lowbp } AND r.start < { highbp }) OR (r.end < { highbp } AND r.end > { lowbp } ) )
-       RETURN 
-         y as node, 
+       RETURN
+         y as node,
          y.id as node_id,
          y.type as `type`
        ORDER BY node_id")
       {"landmark" (db/calculate-landmark chr bp) "bp" bp "highbp" highbp "lowbp" lowbp}
-      
+
       (if (.hasNext (.iterator results))
-        (doall (map (fn [y] {:type (get y "type") 
+        (doall (map (fn [y] {:type (get y "type")
                              :id (get y "node_id")
                              :node (get y "node")}) results))
         '({:type "Error, most likely..."
@@ -688,13 +688,13 @@ RETURN
 ; get EC
 (defnp get-ECs
   [node]
-  (db/query 
+  (db/query
     (str "MATCH (x)-[:PARENT_OF*0..1]->(:mRNA)-[:BLASTP_TOP_HIT|:BLASTP_GOOD_HIT]-(:mRNA)-[:PART_OF]-(rxn)-[:BELONGS_TO]-(ec)
           WHERE id(x) = {id}
           RETURN DISTINCT(ec.id) as ec, ec.definition AS definition")
     {"id" (.getId node)}
     (if (.hasNext (.iterator results))
-      (doall (map (fn [y] 
+      (doall (map (fn [y]
                     {:ec (get y "ec")
                      :def (get y "definition")})
                   results))
@@ -703,19 +703,19 @@ RETURN
 ; get pathways
 (defnp get-pathways
   [node]
-  (db/query 
+  (db/query
     (str "MATCH (x)-[:PARENT_OF*0..1]->(:mRNA)-[:BLASTP_TOP_HIT|:BLASTP_GOOD_HIT]-(:mRNA)-[:PART_OF]-(rxn)-[:INVOLVED_IN]-(pwy)
           WHERE id(x) = {id}
           RETURN DISTINCT(pwy.definition) as pathway")
     {"id" (.getId node)}
     (if (.hasNext (.iterator results))
-      (doall (map (fn [y] 
+      (doall (map (fn [y]
                     {:pwy (get y "pathway")})
                   results))
       [])))
 
 ; Count total # of genes having a GOTERM
-; START x=node:main(id = "GO:0004866") 
+; START x=node:main(id = "GO:0004866")
 ; MATCH (x)-[:HAS_GOTERM]-(y:`MEDICAGO TRUNCATULA 4.0`)<-[:PARENT_OF]-(z:GENE)
 ; RETURN COUNT(DISTINCT(z))
 
@@ -731,7 +731,7 @@ RETURN
   [hits]
   (if (empty? hits)
     ""
-    (clojure.string/join 
+    (clojure.string/join
       ", "
       (map :id
            (val
@@ -743,10 +743,10 @@ RETURN
 (defn query-tassel
   [config options args]
   (db/connect (get-in config [:global :db_path]) (:memory options))
-  
-  ; Args are: 
+
+  ; Args are:
   ; input-file-name
-  
+
   ; Peak detection
   ; TODO: Assign peaks to Group Numbers
   ; TODO: Better peak detection algorithm
@@ -755,7 +755,7 @@ RETURN
   ; Then each val is a hash-set with SNPs in it, if the first snp in the peak is in another set, add it
   ; Otherwise, create a new group and name it n+1
   (profile :info :query
-  (let [species (:species options) 
+  (let [species (:species options)
         version (:version options)
         expression-conditions (get-expression-conditions species version)
         initial (iio/read-dataset (first args) :delim \tab :header true)
@@ -764,47 +764,47 @@ RETURN
                [:Locus :Site]
                (partial determine-peak initial)
                initial)]
-    
+
     (let [idx (batch/convert-name species version)
           output (:output-file options)]
 
       (let [
             sorted-snps (i/$order :p :asc snps)
             snp-count (count (:rows sorted-snps))
-            
+
             ; These are percentages (10% 25% 50%, and 100% is all)
       top10 (i/to-vect (i/$ [:Locus :Site] (i/->Dataset (:column-names sorted-snps) (take (int (* 0.1 snp-count)) (:rows sorted-snps)))))
             top25 (i/to-vect (i/$ [:Locus :Site] (i/->Dataset (:column-names sorted-snps) (take (int (* 0.25 snp-count)) (:rows sorted-snps)))))
             top50 (i/to-vect (i/$ [:Locus :Site] (i/->Dataset (:column-names sorted-snps) (take (int (* 0.50 snp-count)) (:rows sorted-snps)))))
             top100 (i/to-vect (i/$ [:Locus :Site] sorted-snps))
-            
+
             get-genes (fn [snps]
-                        (group-by 
+                        (group-by
                           :id
-                          (remove 
-                            #(clojure.string/blank? (:id %)) 
-                            (flatten 
-                              (map 
-                                (fn [[x y]] 
+                          (remove
+                            #(clojure.string/blank? (:id %))
+                            (flatten
+                              (map
+                                (fn [[x y]]
                                   (let [genes (in-element? idx (str "chr" x) y)]
                                     (if (not (clojure.string/blank? (:id (first genes))))
                                       genes
                                       (filter
                                         (fn [x]
                                           (<= (:abs-distance x) 1000))
-                                        (find-nearest idx (str "chr" x) y))))) 
+                                        (find-nearest idx (str "chr" x) y)))))
                                 snps)))))
-            
+
             top10-genes (get-genes top10)
             top25-genes (get-genes top25)
             top50-genes (get-genes top50)
             top100-genes (get-genes top100)
             ]
-        
-        (doseq [[name correlations gene-list] 
-                [["top10" (delay (get-expression-correlations (map :node (flatten (vals top10-genes))))) top10-genes] 
-                 ["top25" (delay (get-expression-correlations (map :node (flatten (vals top25-genes))))) top25-genes] 
-                 ["top50" (delay (get-expression-correlations (map :node (flatten (vals top50-genes))))) top50-genes] 
+
+        (doseq [[name correlations gene-list]
+                [["top10" (delay (get-expression-correlations (map :node (flatten (vals top10-genes))))) top10-genes]
+                 ["top25" (delay (get-expression-correlations (map :node (flatten (vals top25-genes))))) top25-genes]
+                 ["top50" (delay (get-expression-correlations (map :node (flatten (vals top50-genes))))) top50-genes]
                  ["all" (delay (get-expression-correlations (map :node (flatten (vals top100-genes))))) top100-genes]]]
           (db/with-tx db/*db*
             (with-open [wrtr (clojure.java.io/writer (str output "_" name "_expression_correlation.gdf"))
@@ -819,37 +819,37 @@ RETURN
                                        (some (fn [x] (nil? (:abs-distance x))) entries) "'255,0,0'" ; SNP is inside at least one gene
                                  :else "'160,160,160'" ; SNP not in any genes
                                  )]
-                  (.write wrtr (str 
-                                 (clojure.string/join 
+                  (.write wrtr (str
+                                 (clojure.string/join
                                    ","
                                    [(.getId gene)
                                     (.getProperty gene "id")
                                     "40.0"
-                                    (cond 
+                                    (cond
                                       (get top10-genes (.getProperty gene "id")) "'255,0,0'" ; Red
                                 (get top25-genes (.getProperty gene "id")) "'0,102,204'" ; Blue
                                 (get top50-genes (.getProperty gene "id")) "'32,32,32'" ; Black"
                                 (get top100-genes (.getProperty gene "id")) "'160,160,160'" ; Gray
-                                :else "'0,255,0'" ; Indicates an error - Green 
+                                :else "'0,255,0'" ; Indicates an error - Green
                                 )
                                     stroke-color])
                                  "\n"))))
                 (.write wrtr (str "edgedef>node1 VARCHAR, node2 VARCHAR, weight DOUBLE, label VARCHAR, color VARCHAR" "\n"))
                 (doseq [[start end corr] @correlations]
-                  (.write csv-wrtr 
-                    (str 
-                      (clojure.string/join 
-                        "," 
-                        [(.getProperty start "id") 
+                  (.write csv-wrtr
+                    (str
+                      (clojure.string/join
+                        ","
+                        [(.getProperty start "id")
                          (.getProperty end "id")
                          corr
                          (get-annotation-note start)
                          (get-annotation-note end)
-                         ]) 
+                         ])
                       "\n"))
-                  (.write wrtr (str (clojure.string/join "," [(.getId start) 
-                                                              (.getId end) 
-                                                              corr 
+                  (.write wrtr (str (clojure.string/join "," [(.getId start)
+                                                              (.getId end)
+                                                              corr
                                                               (.toString (float corr))
                                                               (cond
                                                                 (< corr 0) "'204,0,0'" ; Red
@@ -859,9 +859,9 @@ RETURN
         (println "Expression correlation graphs generated"))
 
       (with-open [wrtr (clojure.java.io/writer (str output "_results.tsv"))]
-        (.write wrtr (clojure.string/join 
-                       "\t" 
-                       (concat 
+        (.write wrtr (clojure.string/join
+                       "\t"
+                       (concat
                          ["trait" "chr" "bp" "p" "Status" "Effect" "Effect Impact" "AA Change" "SNP in" "SNP annotation" "GO" "ECs" "Pathways" "At Hit" "Gm hit" "Nearby IDs" "Nearby Annotations" "Nearby GO" "Nearby ECs" "Nearby Pathways" "SNP PO" "Nearby PO"]
                          expression-conditions)))
         (.write wrtr "\n")
@@ -877,38 +877,38 @@ RETURN
                   ecs                  (clojure.string/join ", " (distinct (map #(str (:ec %) " " (:def %)) (flatten (map get-ECs in-element-nodes)))))
                   pathways             (clojure.string/join ", " (distinct (map :pwy (flatten (map get-pathways in-element-nodes)))))
                   blastp-hits          (map get-top-blastp-hits in-element-nodes)
-                  
+
                   arabidopsis-hits     (get-top-blastp-hit-by-bitscore (filter #(= (:species %) "Arabidopsis thaliana") (flatten blastp-hits)))
                   glycine-hits         (get-top-blastp-hit-by-bitscore (filter #(= (:species %) "Glycine max") (flatten blastp-hits)))
-                  
+
                   snp-effects          (get-snp-effect idx chr bp)
                   effects              (clojure.string/join ", " (distinct (map :effect snp-effects)))
                   effects-impact       (clojure.string/join ", " (distinct (map :effect-impact snp-effects)))
                   amino-acid-changes   (clojure.string/join ", " (remove clojure.string/blank? (distinct (map :amino-acid-change snp-effects))))
-                             
+
                   expression           (when (:node (first in-element-results))
                                          (apply merge
                                                (for [e (get-expression (:node (first in-element-results)))]
                                                  {(:name e) (:FPKM e)})))
-                             
+
                   expression-data      (for [e expression-conditions]
                                            (get expression e 0))
-                             
+
                   ; If in-exon is here, then always reported as an intron
-                  go-terms   (clojure.string/join ", " (distinct 
-                                                         (map 
+                  go-terms   (clojure.string/join ", " (distinct
+                                                         (map
                                                            :name
                                                            (flatten
-                                                             (map 
-                                                               get-goterms 
+                                                             (map
+                                                               get-goterms
                                                                in-element-nodes)))))
-                
-                  po-terms   (clojure.string/join ", " (distinct 
-                                                         (map 
-                                                           :name 
+
+                  po-terms   (clojure.string/join ", " (distinct
+                                                         (map
+                                                           :name
                                                            (flatten
-                                                             (map 
-                                                               get-poterms 
+                                                             (map
+                                                               get-poterms
                                                                in-element-nodes)))))
                   status     (cond
                                (= "gene" (first (distinct (map :type in-element-results)))) in-exon
@@ -926,14 +926,14 @@ RETURN
                   nearby-annotations      (clojure.string/join " | " (flatten (map ruc/url-decode (flatten (map get-annotation-note nearby-nodes)))))
                   nearby-ecs              (clojure.string/join ", " (distinct (map #(str (:ec %) " " (:def %)) (flatten (map get-ECs nearby-nodes)))))
                   nearby-pathways         (clojure.string/join ", " (distinct (map :pwy (flatten (map get-pathways nearby-nodes)))))
-                
+
                   ; Get nearby genes
                   ; neighborhood            (find-all-in-range idx chr bp 25000)
                   ; neighborhood-nodes      (map :node neighborhood)
                   ; neighborhood-goterms    (filter (fn [x] (> (val x) 4)) (frequencies (flatten (map get-goterms neighborhood-nodes))))
 
                   ]
-            
+
               ;(println snp-effects)
               ;(println blastp-hits)
               ;(println arabidopsis-hits)
@@ -964,9 +964,9 @@ RETURN
               ;(println)
               ;(println)
 
-              (.write wrtr 
-                (clojure.string/join "\t" 
-                                     (map remove-tabs 
+              (.write wrtr
+                (clojure.string/join "\t"
+                                     (map remove-tabs
                                           (concat
                                             [trait chr bp p status effects effects-impact amino-acid-changes snp-in (ruc/url-decode snp-annotation) go-terms ecs pathways arabidopsis-hits glycine-hits nearby-ids nearby-annotations nearby-goterms-string nearby-ecs nearby-pathways po-terms nearby-poterms-string]
                                             expression-data))))
@@ -977,22 +977,22 @@ RETURN
   "Given a list of gene names, with no header, generate a co-expression network"
   [config options args]
   (db/connect (get-in config [:global :db_path]) (:memory options))
-  
+
   (profile :info :query
-  (let [species (:species options) 
+  (let [species (:species options)
         version (:version options)
         output (:output-file options)
-        
+
         idx (batch/convert-name species version)
 
         expression-conditions (get-expression-conditions species version)
         gene-list (i/rename-cols {0 :gene} (iio/read-dataset (first args) :delim \tab :header false))
         genes (remove nil? (map (partial find-by-id idx) (i/$ :gene gene-list)))
         ]
-    
+
     (println "Calculating correlations")
-    
-    (doseq [[correlations gene-list] [[(get-expression-correlations genes) genes]]] 
+
+    (doseq [[correlations gene-list] [[(get-expression-correlations genes) genes]]]
       (db/with-tx db/*db*
         (with-open [wrtr (clojure.java.io/writer (str output "_expression_correlation.gdf"))
                     tsv-wrtr (clojure.java.io/writer (str output "_expression_correlation.tsv"))]
@@ -1000,8 +1000,8 @@ RETURN
             (.write wrtr (str "nodedef>name VARCHAR, label VARCHAR, width DOUBLE,color VARCHAR" "\n"))
             (.write tsv-wrtr (str (clojure.string/join "\t" ["Gene1", "Gene2", "Pearson Correlation", "Gene 1 Desc", "Gene 2 Desc"]) "\n"))
             (doseq [gene genes]
-              (.write wrtr (str 
-                             (clojure.string/join 
+              (.write wrtr (str
+                             (clojure.string/join
                                ","
                                [(.getId gene)
                                 (.getProperty gene "id")
@@ -1011,20 +1011,20 @@ RETURN
                              "\n"))))
             (.write wrtr (str "edgedef>node1 VARCHAR, node2 VARCHAR, weight DOUBLE, label VARCHAR, color VARCHAR" "\n"))
             (doseq [[start end corr] correlations]
-              (.write tsv-wrtr 
-                (str 
-                  (clojure.string/join 
-                    "\t" 
-                    [(.getProperty start "id") 
+              (.write tsv-wrtr
+                (str
+                  (clojure.string/join
+                    "\t"
+                    [(.getProperty start "id")
                      (.getProperty end "id")
                      corr
                      (java.net.URLDecoder/decode (str (clojure.string/join ", " (get-annotation-note start))))
                      (java.net.URLDecoder/decode (str (clojure.string/join ", " (get-annotation-note end))))
-                     ]) 
+                     ])
                   "\n"))
-              (.write wrtr (str (clojure.string/join "," [(.getId start) 
-                                                          (.getId end) 
-                                                          corr 
+              (.write wrtr (str (clojure.string/join "," [(.getId start)
+                                                          (.getId end)
+                                                          corr
                                                           (.toString (float corr))
                                                           (cond
                                                             (< corr 0) "'204,0,0'" ; Red
@@ -1037,21 +1037,21 @@ RETURN
 (defn expression
   [config options args]
   (db/connect (get-in config [:global :db_path]) (:memory options))
-  
+
   (profile :info :query
-  (let [species (:species options) 
+  (let [species (:species options)
         version (:version options)
         expression-conditions (get-expression-conditions species version)]
-    
+
     (let [idx (batch/convert-name species version)
           output (:output-file options)]
-      
+
       (println idx)
 
       (with-open [wrtr (clojure.java.io/writer (str output "_expression.tsv"))]
-        (.write wrtr (clojure.string/join 
-                       "\t" 
-                       (concat 
+        (.write wrtr (clojure.string/join
+                       "\t"
+                       (concat
                          ["gene"]
                          expression-conditions)))
         (.write wrtr "\n")
@@ -1062,58 +1062,58 @@ RETURN
               (let [expression           (apply merge
                                                (for [e (get-expression node)]
                                                  {(:name e) (:FPKM e)}))
-                             
+
                     expression-data      (for [e expression-conditions]
                                              (get expression e 0))]
-            
-                (.write wrtr 
-                  (clojure.string/join "\t" 
-                                       (map remove-tabs 
+
+                (.write wrtr
+                  (clojure.string/join "\t"
+                                       (map remove-tabs
                                             (concat
                                               [gene_id]
                                               expression-data))))
                 (.write wrtr "\n")
                 )
               (.write wrtr (str gene_id "\n"))
-              
+
               ))))))))
 
 (defn gene-list
   "Computes aggregate stats for a gene list -- Format is gene_id followed by allele frequency"
   [config options args]
   (db/connect (get-in config [:global :db_path]) (:memory options))
-  
-  (let [species (:species options) 
+
+  (let [species (:species options)
         version (:version options)
-        
+
         expression-conditions (get-expression-conditions species version)
-        
+
         initial (iio/read-dataset (first args) :delim \tab :header true)]
-    
+
     (let [idx (batch/convert-name species version)
           output (:output-file options)]
       (with-open [wrtr (clojure.java.io/writer (str output "_stats.tsv"))]
         (let [
               genes (i/to-vect initial)
               count (count genes)
-              
+
               ; Low AF -- 0.0 - 0.1
               low-af-genes ["AF <= 0.1" (filter #(<= (second %) 0.10) genes)]
-              
+
               ; Middle AF - 0.1 - 0.2
               middle-af-genes ["0.1 < AF <= 0.2" (filter #(and (> (second %) 0.1) (<= (second %) 0.2)) genes)]
-              
+
               ; High AF - 0.2+
               high-af-genes ["AF > 0.2" (filter #(> (second %) 0.20) genes)]
-              
+
               ; All genes
               all-genes ["Any" genes]
               ]
 
-          (.write wrtr (clojure.string/join 
-                        "\t" 
+          (.write wrtr (clojure.string/join
+                        "\t"
                        ["AF" "Type" "ID" "Count"]))
-          
+
           (.write wrtr "\n")
           (doseq [[af genes-af-list] [high-af-genes middle-af-genes low-af-genes all-genes]]
             (let [
@@ -1126,7 +1126,7 @@ RETURN
                   ECs (frequencies (map #(str (:ec %) " " (:definition %)) (flatten (map get-ECs nodes))))
                   notes (frequencies (flatten (map get-annotation-note nodes)))
                   ]
-              
+
               (doseq [[term-type terms] [["GO" go-terms] ["GO-up" go-terms-higher] ["Pathways" pathways] ["Expression" expression] ["EC" ECs] ["AnnotationNotes" notes]]]
                 (doseq [[term total] terms]
                   (.write wrtr (clojure.string/join "\t" [af term-type term total]))
@@ -1136,23 +1136,23 @@ RETURN
 (defn orthologs
   [config options args]
   (db/connect (get-in config [:global :db_path]) (:memory options))
-  
-  (let [species (:species options) 
+
+  (let [species (:species options)
         version (:version options)
-        
+
         expression-conditions (get-expression-conditions species version)
-        
+
         initial (iio/read-dataset (first args) :delim \tab :header true)]
-    
+
     (let [idx (batch/convert-name species version)
           output (:output-file options)]
       (with-open [wrtr (clojure.java.io/writer (str output "_orthologs.tsv"))]
         (let [genes (map first (i/to-vect initial))]
 
-          (.write wrtr (clojure.string/join 
-                        "\t" 
+          (.write wrtr (clojure.string/join
+                        "\t"
                        ["Mt" "Gm"]))
-          
+
           (.write wrtr "\n")
           (doseq [gene genes]
             (let [
@@ -1160,7 +1160,7 @@ RETURN
                   blastp-hits (get-top-blastp-hits node)
                   glycine-hits (get-top-blastp-hit-by-bitscore (filter #(= (:species %) "Glycine max") (flatten blastp-hits)))
                   ]
-              
+
               (.write wrtr (clojure.string/join "\t" [gene glycine-hits]))
               (.write wrtr "\n")
               )))))))
@@ -1170,10 +1170,10 @@ RETURN
 (defn ECs-from-GO
   [config options args]
   (db/connect (get-in config [:global :db_path]) (:memory options))
-  
+
   (let [species (:species options)
         version (:version options)]
-    
+
     (let [results
           (db/query
             (str
@@ -1188,17 +1188,17 @@ RETURN
                         (get x "xref.id")
                         (get x "xref.definition")])
                         results))))]
-      
+
       (println (take 5 results))
 
-      (with-open [wrtr (clojure.java.io/writer (str species "_" version "_EC_from_GO_report.tsv"))]      
+      (with-open [wrtr (clojure.java.io/writer (str species "_" version "_EC_from_GO_report.tsv"))]
         (.write wrtr (clojure.string/join "\t" ["Gene ID", "EC", "EC Definition"]))
         (.write wrtr "\n")
-        
+
         (doseq [result results]
-          (.write 
-            wrtr 
-            (clojure.string/join 
+          (.write
+            wrtr
+            (clojure.string/join
               "\t"
               result))
           (.write wrtr "\n"))))))
@@ -1206,12 +1206,12 @@ RETURN
 (defn biological-processes
   [config options args]
   (db/connect (get-in config [:global :db_path]) (:memory options))
-  
-  (let [species (:species options) 
+
+  (let [species (:species options)
         version (:version options)
-        
+
         index (batch/convert-name species version)
-        
+
         initial (iio/read-dataset (first args) :delim \tab :header true)]
 
     (let [idx (batch/convert-name species version)
@@ -1219,8 +1219,8 @@ RETURN
       (with-open [wrtr (clojure.java.io/writer (str output "_biological-processes.tsv"))]
         (let [genes (map first (i/to-vect initial))]
 
-          (.write wrtr (clojure.string/join 
-                        "\t" 
+          (.write wrtr (clojure.string/join
+                        "\t"
                        ["Gene" "Biological_Processs"]))
           (.write wrtr "\n")
 
@@ -1234,24 +1234,24 @@ RETURN
 (defn biological-processes-all-genes
   [config options args]
   (db/connect (get-in config [:global :db_path]) (:memory options))
-  
-  (let [species (:species options) 
+
+  (let [species (:species options)
         version (:version options)
         version-label (batch/dynamic-label (str species " " version))]
-    
+
     (println "Calculating Biological Processes for all Proteins / Genes in " species version)
 
     (let [idx (batch/convert-name species version)
           output (:output-file options)]
       (with-open [wrtr (clojure.java.io/writer (str output "_biological-processes.tsv"))]
-          (.write wrtr (clojure.string/join 
-                        "\t" 
+          (.write wrtr (clojure.string/join
+                        "\t"
                        ["Gene" "Biological_Processs"]))
           (.write wrtr "\n")
 
           ; TODO:
           ; Return Gene ID if it's attached...
-          
+
             (let [q (str "MATCH (x:`InterProScan Analyzed`)-[:HAS_ANALYSIS]-()-[:HAS_GOTERM]-(go:biological_process)
                           WHERE x:`" version-label"` AND ( x:Gene OR x:Protein OR x:Annotation )
                           RETURN DISTINCT x.id, collect(go.name) AS bp")
@@ -1271,24 +1271,24 @@ RETURN
 (defn ipr-terms-all-genes
   [config options args]
   (db/connect (get-in config [:global :db_path]) (:memory options))
-  
-  (let [species (:species options) 
+
+  (let [species (:species options)
         version (:version options)
         version-label (batch/dynamic-label (str species " " version))]
-    
+
     (println "Calculating IPR Terms members for all Proteins in " species version)
 
     (let [idx (batch/convert-name species version)
           output (:output-file options)]
       (with-open [wrtr (clojure.java.io/writer (str output "_iprterms.tsv"))]
-          (.write wrtr (clojure.string/join 
-                        "\t" 
+          (.write wrtr (clojure.string/join
+                        "\t"
                        ["Gene" "IPR_Terms"]))
           (.write wrtr "\n")
 
           ; TODO:
           ; Return Gene ID if it's attached...
-          
+
             (let [q (str "MATCH (x:Protein)-[:HAS_ANALYSIS]-()-[:HAS_IPRTERM]-(ipr:IPR_TERM)
                           WHERE x:`" version-label"`
                           RETURN DISTINCT x.id, collect(ipr.definition) AS ipr")
@@ -1308,25 +1308,25 @@ RETURN
 (defn pfam-domains-all-genes
   [config options args]
   (db/connect (get-in config [:global :db_path]) (:memory options))
-  
-  (let [species (:species options) 
+
+  (let [species (:species options)
         version (:version options)
         version-label (batch/dynamic-label (str species " " version))]
-    
+
     (println "Exporting PFam_Domains members for all Proteins in " species version)
 
     (let [idx (batch/convert-name species version)
           output (:output-file options)]
       (with-open [wrtr (clojure.java.io/writer (str output "_pfam_domains.tsv"))]
-          (.write wrtr (clojure.string/join 
-                        "\t" 
+          (.write wrtr (clojure.string/join
+                        "\t"
                        ["Gene" "PFam_Domains"]))
           (.write wrtr "\n")
 
           ; TODO:
           ; Return Gene ID if it's attached...
-          
-            (let [q (str "MATCH (x:Protein)-[:HAS_ANALYSIS]-(pfam:PFAM) 
+
+            (let [q (str "MATCH (x:Protein)-[:HAS_ANALYSIS]-(pfam:PFAM)
                           WHERE x:`" version-label"`
                           RETURN DISTINCT x.id, collect(pfam.definition) AS pfam ORDER BY x.id")
                   results (db/query q {}
@@ -1345,44 +1345,44 @@ RETURN
 (defn annotate-genes-blast-hits
   [config options args]
   (db/connect (get-in config [:global :db_path]) (:memory options))
-  
-  (let [species (read-string (:species options)) 
+
+  (let [species (read-string (:species options))
         version (:version options)
-        
+
         species-list (enumerate-species)
-        
+
         db-label (if (integer? species)
                    (batch/dynamic-label (get species-list species))
                    (batch/dynamic-label (str species " " version)))
-        
+
         species-version-label (if (integer? species)
                                 (get species-list species)
                                 (str species " " version))
-        
+
         subjects (map read-string (clojure.string/split (:subjects options) #","))
-        
+
         subjects-named (into [] (map (fn [x] (get species-list x)) subjects))
-        
+
         optional-matches (for [i subjects]
                            (let [label (batch/dynamic-label (get species-list i))]
                            (str " OPTIONAL MATCH (x)-[:PARENT_OF*0..2]-(:Protein)-[:BLASTP_TOP_HIT]-(hit" i ":`" label "`) ")))
-        
+
         optional-matches-return (for [i subjects]
                                   (let [label (batch/dynamic-label (get species-list i))]
                                     (str " COLLECT(DISTINCT(hit" i ".description)) as s" i "_description, "
                                          " COLLECT(DISTINCT(hit" i ".definition)) as s" i "_definition, "
                                          " COLLECT(DISTINCT(hit" i ".def)) as s" i "_def, "
                                          " COLLECT(DISTINCT(hit" i ".note)) as s" i "_note ")))
-        
+
         optional-fields (for [i subjects]
                           [(get species-list i)
                            [(str "s" i "_description")
                             (str "s" i "_definition")
                             (str "s" i "_def")
                             (str "s" i "_note")]])]
-    
-    
-    
+
+
+
     (println "Exporting Annotations for members for all Proteins in " species-version-label "as compared to subject set")
 
     (let [idx (batch/convert-name species version)
@@ -1395,7 +1395,7 @@ RETURN
 
           ; TODO:
           ; Return Gene ID if it's attached...
-          
+
             (let [q (str "MATCH (x:`" db-label "`)
                             WHERE x:gene " (apply str optional-matches) "
                           RETURN DISTINCT
@@ -1405,16 +1405,16 @@ RETURN
                                           (doall
                                             (map
                                               (fn [x]
-                                                (concat 
+                                                (concat
                                                   [(get x "x.id")]
                                                   (doall
-                                                    (map 
+                                                    (map
                                                       (fn [[species query-fields]]
                                                         (filter
                                                           identity
                                                           (apply
                                                             concat
-                                                            (map 
+                                                            (map
                                                               (fn [y]
                                                                 (get x y))
                                                               query-fields))))
@@ -1424,8 +1424,8 @@ RETURN
               (doseq [result results]
                 (.write wrtr (clojure.string/join "\t" (concat
                                                          [(first result)]
-                                                         (map 
-                                                           (fn [x] 
+                                                         (map
+                                                           (fn [x]
                                                              (clojure.string/join "|" (distinct (into [] x))))
                                                            (rest result)))))
                 (.write wrtr "\n")
@@ -1456,73 +1456,64 @@ RETURN
 (defn annotate-gene-list
   [config options args]
   (db/connect (get-in config [:global :db_path]) (:memory options))
-  
-  (let [species (:species options) 
+
+  (let [species (:species options)
         version (:version options)
         initial (iio/read-dataset (first args) :delim \tab :header true)
         idx (batch/convert-name species version)
         output (:output-file options)
         gene-list (i/$ 1 initial)
-        gene-ids (doall (pmap (fn [x] (find-by-id idx x)) gene-list)) ; Pmap takes it from 7.8 seconds to 1.5 on my test dataset. wow
-        ]
-    
-  (i/save
-    (->> initial
-         (i/add-column 
-           "Annotations"
-           (map 
-             (fn [x]
-               (clojure.string/join 
-                 ", " 
-                 (distinct
-                   (get-annotation-note x))))
-             gene-ids))
-       
-         (i/add-column
-           "GO Terms"
-           (pmap 
-             (fn [x]
-               (clojure.string/join 
-                 ", " 
-                 (distinct
-                   (map
-                     :name
-                       (get-goterms
-                         x)))))
-             gene-ids))
-       
-         (i/add-column
-           "ECs"
-           (pmap
-             (fn [x]
-               (clojure.string/join 
-                 ", " 
-                 (distinct 
-                   (map 
-                     #(str (:ec %) " " (:def %)) 
-                     (get-ECs x)))))
-             gene-ids))
-       
-         (i/add-column
-           "Pathways"
-           (pmap
-             (fn [x]
-               (clojure.string/join 
-                 ", " 
-                 (distinct 
-                   (map 
-                     :pwy 
-                     (get-pathways x)))))
-             gene-ids)))
-    
-    (str output "_results.tsv")
-    :delim \tab)))
-    
-    
-    
-  
-  
-  
-  
-         
-    
+        gene-ids (doall (pmap (fn [x] (find-by-id idx x)) gene-list))] ; Pmap takes it from 7.8 seconds to 1.5 on my test dataset. wow
+
+
+   (i/save
+     (->> initial
+          (i/add-column
+            "Annotations"
+            (map
+              (fn [x]
+                (clojure.string/join
+                  ", "
+                  (distinct
+                    (get-annotation-note x))))
+              gene-ids))
+
+          (i/add-column
+            "GO Terms"
+            (pmap
+              (fn [x]
+                (clojure.string/join
+                  ", "
+                  (distinct
+                    (map
+                      :name
+                        (get-goterms
+                          x)))))
+              gene-ids))
+
+          (i/add-column
+            "ECs"
+            (pmap
+              (fn [x]
+                (clojure.string/join
+                  ", "
+                  (distinct
+                    (map
+                      #(str (:ec %) " " (:def %))
+                      (get-ECs x)))))
+              gene-ids))
+
+          (i/add-column
+            "Pathways"
+            (pmap
+              (fn [x]
+                (clojure.string/join
+                  ", "
+                  (distinct
+                    (map
+                      :pwy
+                      (get-pathways x)))))
+              gene-ids)))
+
+     (str output "_results.tsv")
+     :delim \tab)))
