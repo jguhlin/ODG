@@ -543,8 +543,8 @@
 
 ; Re-implementing batchdb-server as async channels
 
-; Async server, buffer up to 1k operations
-(def batchdb-server (chan 1000))
+; Async server, buffer up to 10k operations
+(def batchdb-server (chan 10000))
 
 (defn -db-connect [db_path memory]
   (println "Starting Batch Database at" db_path "with" memory)
@@ -572,133 +572,134 @@
                {main-id alt-ids}))))})))
 
 ; Batch DB server's main go loop
-(go
-  (loop [message :blank]
-    (case (first message)
-      :connect  (apply -db-connect (rest message))
-      :load-mapping (apply -load-mapping (rest message))
-      ; Exclusively for debugging purposes...
-      :get-db (let [dbd (:db @state)] dbd)
-      :get-node-index
-                (let [[index-name] (rest message)
-                      index-manager (:index-manager @state)
-                      idx (get-node-index index-manager index-name)]
-                  idx)
-      ; Main place where things will happen
-      :batch
-        (let [[batch-package] (rest message)]
-             db            (:db @state)
-             index-manager (:index-manager @state)
-             mapping       (:mapping @state)
-         (handle-batch db index-manager mapping batch-package))
-      :node (let [[^java.util.Map node-properties node-labels] (rest message)
-                   ^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)]
-               (println "DB:" db)
-               (println "Props:" node-properties)
-               (println "Labels:" node-labels)
-               (reply! from id (.createNode db node-properties node-labels))
-               nil)
-      :rel (do (reply! from id "not yet"))
-      :query-properties
-       (let [[data] (rest message)
-             index-name (:index data)
-             index-manager (:index-manager @state)
-             idx (get-node-index index-manager index-name)
-             ^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)]
-         (doall
-           (filter
-             identity
-             (for [id (:query data)]
-               (if-let [results (query-index idx id)]
-                 (let [results-fn (if (:results-fn data) (:results-fn data) identity)]
+(defn execute-message
+  [message]
+  (case (first message)
+    :connect  (apply -db-connect (rest message))
+    :load-mapping (apply -load-mapping (rest message))
+    ; Exclusively for debugging purposes...
+    :get-db (let [dbd (:db @state)] dbd)
+    :get-node-index
+            (let [[index-name] (rest message)
+                  index-manager (:index-manager @state)
+                  idx (get-node-index index-manager index-name)]
+              idx)
+    ; Main place where things will happen
+    :batch
+      (let [[batch-package] (rest message)]
+           db            (:db @state)
+           index-manager (:index-manager @state)
+           mapping       (:mapping @state)
+       (handle-batch db index-manager mapping batch-package))
+
+    :node (let [[^java.util.Map node-properties node-labels out] (rest message)
+                 ^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)]
+             (println "DB:" db)
+             (println "Props:" node-properties)
+             (println "Labels:" node-labels)
+             (>! out (.createNode db node-properties node-labels)))
+
+    :rel (let [[out]] (rest message)
+           (>! out "Not yet implemented"))
+
+    :query-properties
+     (let [[data out] (rest message)
+           index-name (:index data)
+           index-manager (:index-manager @state)
+           idx (get-node-index index-manager index-name)
+           ^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)]
+       (doall
+         (filter
+           identity
+           (for [id (:query data)]
+             (if-let [results (query-index idx id)]
+               (let [results-fn (if (:results-fn data) (:results-fn data) identity)]
+                 (>! out
                    [id
                     ((:results-fn data)
                      (.getNodeProperties
-                       db
-                         (if (:filter-fn data)
-                           (some (fn [node-id] ((:filter-fn data)
-                                                node-id
-                                                (.getNodeProperties db node-id)
-                                                (map
-                                                  (fn [x] (.name x))
-                                                  (.getNodeLabels db node-id))))
-                                 results)
-                           (first results))))]))))))
-      :query (let [[data] (rest message)
-                    index-name (:index data)
-                    index-manager (:index-manager @state)
-                    idx (get-node-index index-manager index-name)
-                    ^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)]
-                (.flush idx)
-                (debug "Query called, using " (:index data))
-                (doall
-                  (filter
-                    identity
-                    (for [id (:query data)]
-                      (if-let [results (query-index idx id)]
-                         ; :alt-id-fn REMOVED as it is no longer used. Left here because it could be very useful
-                         ;(if (:alt-id-fn data) ; Remodel so it can support multiple outputs
-                         ; Only being used in interproscan so far
-                         ;(query-index idx ((:alt-id-fn data) id))))]
-                       [id
-                             (if (:filter-fn data)
-                               (first (filter (fn [node-id] ((:filter-fn data)
-                                                             node-id
-                                                             (.getNodeProperties db node-id)
-                                                             (map (fn [x] (.name x)) (.getNodeLabels db node-id)))) results))
-                               (first results))])))))
+                      db
+                      (if (:filter-fn data)
+                        (some (fn [node-id] ((:filter-fn data)))
+                          node-id
+                          (.getNodeProperties db node-id
+                            (map
+                              (fn [x] (.name x)
+                                (.getNodeLabels db node-id)
+                                results))))
+                        (first results))))])))))))
 
-        :node (let [[node-promise node-properties node-labels] (rest message)]
-                (deliver node-promise (create-node (:db @state) node-properties node-labels))
-                nil)
+    :query (let [[data out] (rest message)
+                  index-name (:index data)
+                  index-manager (:index-manager @state)
+                  idx (get-node-index index-manager index-name)
+                  ^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)]
+              (.flush idx)
+              (debug "Query called, using " (:index data))
+              (doall
+                (filter
+                  identity
+                  (for [id (:query data)]
+                    (if-let [results (query-index idx id)]
+                       ; :alt-id-fn REMOVED as it is no longer used. Left here because it could be very useful
+                       ;(if (:alt-id-fn data) ; Remodel so it can support multiple outputs
+                       ; Only being used in interproscan so far
+                       ;(query-index idx ((:alt-id-fn data) id))))]
+                       (>! out
+                         [id
+                          (if (:filter-fn data)
+                           (first (filter (fn [node-id] ((:filter-fn data)
+                                                         node-id
+                                                         (.getNodeProperties db node-id)
+                                                         (map (fn [x] (.name x)) (.getNodeLabels db node-id)))) results))
+                           (first results))]))))))
 
-        ; Create rel does not return anything
-        :rel (let [[start end rel-type rel-properties] (rest message)]
-               (create-rel (:db @state) start end rel-type rel-properties)
-               nil)
+    :node (let [[node-promise node-properties node-labels] (rest message)]
+            (deliver node-promise (create-node (:db @state) node-properties node-labels))
+            nil)
 
-        ; Add label to node
-        :add-labels-to-node
-        (let [[node-id labels] (rest message)
-              ^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)]
-          (.setNodeLabels
-            db
-            node-id
-            (into-array org.neo4j.graphdb.Label
-                        (distinct
-                          (reduce
-                            into []
-                            [(.getNodeLabels db node-id)
-                             labels])))))
+    ; Create rel does not return anything
+    :rel (let [[start end rel-type rel-properties] (rest message)]
+           (create-rel (:db @state) start end rel-type rel-properties)
+           nil)
 
-        ; Most batch processes go here
-        :batch
-        (let [[batch-package] (rest message)
-              db            (:db @state)
-              mapping       (:mapping @state)
-              index-manager (:index-manager @state)]
-          (handle-batch db index-manager mapping batch-package))
+    ; Add label to node
+    :add-labels-to-node
+    (let [[node-id labels] (rest message)
+          ^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)]
+      (.setNodeLabels
+        db
+        node-id
+        (into-array org.neo4j.graphdb.Label
+                    (distinct
+                      (reduce
+                        into []
+                        [(.getNodeLabels db node-id)
+                         labels])))))
 
-        ; Now create the rels
-        ;                  (doseq [[rel-type start end properties] (:rels batch-package)]
-        ;                    (create-rel
-        ;                      (:db @state)
-        ;                      (if (string? start) (get nodes start) start)
-        ;                      (if (string? end) (get nodes end) end)
-        ;                      rel-type
-        ;                      properties))))
+    ; Most batch processes go here
+    :batch
+      (let [[batch-package] (rest message)
+            db            (:db @state)
+            mapping       (:mapping @state)
+            index-manager (:index-manager @state)]
+        (handle-batch db index-manager mapping batch-package))
 
-        (println "Invalid message: " (first message))
-        :shutdown (do)
-          (println "Shutting down")
-          (println cause)
-          (let [^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)]
-            ^LuceneBatchInserterIndexProvider index-manager (:index-manager @state)
-
+    :shutdown
+      (do
+        (println "Shutting down")
+        (println cause)
+        (let [^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)]
+          ^LuceneBatchInserterIndexProvider index-manager (:index-manager @state)
             (.shutdown db)
             (.shutdown index-manager)
-            (set-state! (merge @state {:db nil}))))
-    (apply recur (<! batchdb-server))))
+            (set-state! (merge @state {:db nil}))))))
+
+(defn start-dbh-server []
+  (go-loop [message <! batchdb-server]
+    (when message
+      (execute-message message)
+      (recur (<! batchdb-server)))))
 
 (defn connect [db_path memory]
   (reset! db nil)
