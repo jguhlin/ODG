@@ -209,7 +209,7 @@
 
   (db/with-tx db/*db*
 
-    (let [node-index ^org.neo4j.kernel.impl.coreapi.LegacyIndexProxy (get-node-index index-name)
+    (let [node-index (get-node-index index-name)
           query-text (str "id:*" (batch/dbquote text) "*")
           query-context (.sort
                           (QueryContext. query-text)
@@ -383,9 +383,9 @@
                            :node (get y "node")}) results))
       '({:type "Intergenic"
          :id ""
-         :node nil
-         })
-      )))
+         :node nil}))))
+
+
 
 (defnp in-exon?
   [idx chr bp]
@@ -449,8 +449,8 @@
                       {:name (get y "name")
                        :FPKM (get y "FPKM")
                        :node (get y "expcond")
-                       :type (get y "type")
-                       })
+                       :type (get y "type")})
+
                     results))
         []))))
 

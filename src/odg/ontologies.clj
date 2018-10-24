@@ -216,10 +216,8 @@
 
 (defn import-cli
   [config opts args]
-
   ;(batch/connect (get-in config [:global :db_path]) (:memory opts))
-
-  (import (:type opts) (first args)))
+  (import-obo (:type opts) (first args)))
 
 
 ; Converting to new db-handler / actor system

@@ -2,6 +2,7 @@
   (:require clojure.java.io
             clojure.string
             [clojure.core.reducers :as r]
+            [clojure.core.async :as async :refer [chan >! >!! <! <!! close!]]
             [odg.util :as util]
             [odg.db :as db]
             [biotools.blast :as blast]
@@ -9,8 +10,7 @@
             [incanter.stats :as stats]
             [taoensso.timbre :as timbre]
             [odg.db-handler :as dbh])
-
-  (:import [biotools.blast BlastHit]
+  (:import
            (org.neo4j.graphdb.index Index)
            (org.neo4j.unsafe.batchinsert BatchInserter
                                          BatchInserters

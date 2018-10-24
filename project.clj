@@ -2,7 +2,7 @@
   :main odg.core
   :aot [odg.core]
   :profiles {}
-    :uberjar { :aot :all}
+    :uberjar {:aot :all}
 
   :description "FIXME: write description"
   :url "http://example.com/FIXME"
@@ -40,6 +40,7 @@
                  [org.neo4j/neo4j "3.4.9"]
                  [clojure-csv/clojure-csv "2.0.2"]
                  [cheshire "5.8.1"]
+                 [expound "0.7.1"]
                  [org.clojure/tools.cli "0.3.1"]
                  [criterium "0.4.4"]
                  [org.clojure/math.combinatorics "0.1.4"]

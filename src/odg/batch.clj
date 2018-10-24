@@ -8,13 +8,11 @@
                               DynamicLabel
                               Label)
            (org.apache.lucene.queryparser.classic QueryParser)
-           (org.neo4j.unsafe.batchinsert
-             BatchInserter
-             BatchInserters
-             BatchInserterIndexProvider
-             BatchInserterIndex)
-           (org.neo4j.index.lucene.unsafe.batchinsert
-             LuceneBatchInserterIndexProvider)))
+           (org.neo4j.unsafe.batchinsert BatchInserter
+                                         BatchInserters
+                                         BatchInserterIndexProvider
+                                         BatchInserterIndex)
+           (org.neo4j.index.lucene.unsafe.batchinsert LuceneBatchInserterIndexProvider)))
 
 
 (set! *warn-on-reflection* true)

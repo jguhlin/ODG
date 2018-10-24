@@ -17,11 +17,10 @@
     (org.neo4j.graphdb.factory GraphDatabaseFactory)
     (org.neo4j.graphdb.index Index)
     (org.apache.lucene.queryparser.classic QueryParser)
-    (org.neo4j.graphdb.traversal
-      TraversalDescription
-      Evaluator
-      Evaluation
-      Evaluators)))
+    (org.neo4j.graphdb.traversal TraversalDescription
+                                 Evaluator
+                                 Evaluation
+                                 Evaluators)))
 
 
 (def ^:dynamic *db-connected* nil)
