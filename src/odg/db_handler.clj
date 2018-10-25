@@ -523,9 +523,6 @@
 
 ; Re-implementing batchdb-server as async channels
 
-; Async server, buffer up to 10k operations
-(def batchdb-server (chan 10000))
-
 (defn -db-connect [^String db_path memory]
   (println "Starting Batch Database at" db_path "with" memory)
   (let [db (org.neo4j.unsafe.batchinsert.BatchInserters/inserter
@@ -555,11 +552,16 @@
         (for [[main-id & alt-ids] (map (fn [x] (clojure.string/split x #"\t")) (line-seq rdr))]
           {main-id alt-ids}))))}))
 
+; This fn handles all direct database operations
+(defn execute-db-message
+  [message])
+
 ; Batch DB server's main go loop
+
 (defn execute-message
   [message]
   (case (first message)
-    :connect  (apply -db-connect (rest message))
+    :connect (apply -db-connect (rest message))
     :load-mapping (apply -load-mapping (rest message))
     ; Exclusively for debugging purposes...
     :get-db (let [dbd (:db @state)] dbd)
@@ -660,40 +662,163 @@
                       labels])))))
 
     :shutdown
-      (let [^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)
-            ^LuceneBatchInserterIndexProvider index-manager (:index-manager @state)]
-        (println "Shutting down")
-        (.shutdown index-manager)
-        (.shutdown db)
-        (swap! state merge {:db nil})
-        :shutdown)))
+    (let [^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)
+          ^LuceneBatchInserterIndexProvider index-manager (:index-manager @state)]
+      (println "Shutting down")
+      (.shutdown index-manager)
+      (.shutdown db)
+      (swap! state merge {:db nil})
+      :shutdown)))
 
 ; 3 channels
 ; db channel, single threaded and handles all interactions with the database
 ; write-ch -- Write-only operations to the database (reusable out channel is provided, but never returns)
 ; read & write channel - Read & Write operations to the database, returns a value
 
-(defn start-db-server []
-  (go-loop [[message out] (<! db-server)]
-    (when message
-      (>! out (execute-db-message message)))
-    (recur (<!-))))
+; Async server, buffer up to 10k operations
+(def db-ch (chan 1000))
+(def write-ch (chan 1000))
+(def rw-ch (chan 1000))
 
-(defn start-dbh-server []
-  (go-loop [message (<! batchdb-server)]
+(defn query [data]
+  (let [index-name (:index data)
+        index-manager (:index-manager @state)
+        idx (get-node-index index-manager index-name)
+        ^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)]
+    (.flush idx)
+    (debug "Query called, using " (:index data))
+    (doall
+      (filter
+        identity
+        (for [id (:query data)]
+          (if-let [results (query-index idx id)]
+            ; :alt-id-fn REMOVED as it is no longer used. Left here because it could be very useful
+            ;(if (:alt-id-fn data) ; Remodel so it can support multiple outputs
+            ; Only being used in interproscan so far
+            ;(query-index idx ((:alt-id-fn data) id)
+            [id
+             (if (:filter-fn data)
+               (first
+                 (filter
+                   (fn [node-id]
+                     ((:filter-fn data)
+                      node-id
+                      (.getNodeProperties db node-id)
+                      (map (fn [x] (.name x)) (.getNodeLabels db node-id)))) results))
+               (first results))]))))))
+
+
+(defn query-properties [data]
+  (let [index-name (:index data)
+        index-manager (:index-manager @state)
+        idx (get-node-index index-manager index-name)
+        ^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)]
+    (doall
+      (filter
+        identity
+        (for [id (:query data)]
+          (if-let [results (query-index idx id)]
+            (let [results-fn (if (:results-fn data) (:results-fn data) identity)]
+              [id
+               ((:results-fn data)
+                (.getNodeProperties
+                  db
+                  (if (:filter-fn data)
+                    (some (fn [node-id])
+                      ((:filter-fn data))
+                      node-id
+                      (.getNodeProperties
+                        db
+                        node-id)
+                      (map
+                        (fn [x] (.name x)
+                          (.getNodeLabels
+                            db
+                            node-id)))
+                      results)
+                    (first results))))])))))))
+
+
+; TODO:
+; Potentially use async/thread here? Maybe in the future?
+(defn start-db-ch [] ; Single thread
+  (go-loop [[message out] (<! db-ch)]
     (when message
-      (execute-message message)
-      (recur (<! batchdb-server)))))
+      (>!
+        out
+        (case (first message)
+          :connect (apply -db-connect (rest message))
+          :load-mapping (apply -load-mapping (rest message))
+          :get-db (:db @state)
+          :get-node-index (let [[index-name] (rest message)
+                                index-manager (:index-manager @state)]
+                            (get-node-index index-manager index-name))
+          :batch (let [batch-package (rest message)
+                       ^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)
+                       index-manager (:index-manager @state)
+                       mapping       (:mapping @state)]
+                   (handle-batch db index-manager mapping batch-package))
+          :node (let [[^java.util.Map node-properties node-labels] (rest message)
+                      ^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)]
+                  (.createNode db node-properties node-labels))
+          ; TODO:
+          :query-properties (apply query-properties (rest message))
+          :query (apply query (rest message))
+          :rel (let [[start end rel-type rel-properties] (rest message)]
+                 (create-rel (:db @state) start end rel-type rel-properties))
+          :add-labels-to-node (let [[node-id labels] (rest message)
+                                    ^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)]
+                                (.setNodeLabels
+                                  db
+                                  node-id
+                                  (into-array org.neo4j.graphdb.Label
+                                    (distinct
+                                      (reduce
+                                        into []
+                                        [(.getNodeLabels db node-id)]
+                                        labels)))))
+
+          :shutdown (let [^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)
+                          ^LuceneBatchInserterIndexProvider index-manager (:index-manager @state)]
+                      (println "Shutting down")
+                      (.shutdown index-manager)
+                      (.shutdown db)
+                      (swap! state merge {:db nil})
+                      :shutdown))))
+
+    (recur (<! db-ch))))
+
+; Write-ch returns nothing, so we have a reusable return-ch we use
+(defn start-write-ch []
+  (doseq [_ (range 100)] ; 100 Write threads
+    (let [return-ch (chan)]
+      (go-loop [message (<! write-ch)]
+        (when message
+          (>! db-ch [message return-ch]))
+        (recur (<! write-ch))))))
+
+; For reading, writing, or BOTH
+; Will block while waiting for a return value
+(defn start-rw-ch []
+  (doseq [_ (range 10)] ; 10 Read & Write threads
+    (go-loop [[message return-ch] (<! rw-ch)]
+      (when message
+        (>! db-ch [message return-ch])
+        (<! return-ch))
+      (recur (<! rw-ch)))))
 
 (defn connect [db_path memory]
   (reset! db nil)
-  (start-dbh-server)
+  (start-db-ch)
+  (start-write-ch)
+  (start-rw-ch)
+
   (let [out (chan)]
-    (>!! batchdb-server [:connect db_path memory])
+    (>!! rw-ch [[:connect db_path memory] out])
     (<!! out))) ; Wait until connection is complete before continuing
 
 (defn load-mapping [mapping-file]
-  (>!! batchdb-server [:load-mapping mapping-file]))
+  (>!! write-ch [:load-mapping mapping-file]))
 
 ; Fn's for submitting jobs and parsing batch-packages
 (defn- convert-map-previous
@@ -773,7 +898,7 @@
 (defn add-labels-to-node
   [node-id labels]
   (>!!
-   batchdb-server
+   write-ch
    [:add-labels-to-node
     node-id
     labels]))
@@ -783,7 +908,7 @@
   (info "Batch Job, Indices: " (:indices batch-package))
   (info "Batch Job, Rels: " (count (:rels batch-package)))
 
-  (if-not (nil? batchdb-server)
+  (if-not (nil? db-ch)
     (let [new-nodes                  (future (doall (convert-nodes (distinct (:nodes batch-package)))))
           new-nodes-update-or-create (future (doall (convert-nodes (distinct (:nodes-update-or-create batch-package)))))
           new-nodes-update           (future (doall (convert-nodes (distinct (:nodes-update batch-package)))))
@@ -803,7 +928,7 @@
                       :fulltext-indices       (add-main-ft-idx (into [] (:fulltext-indices batch-package))))
               persistent!)]
       (>!!
-       batchdb-server
+       write-ch
        [:batch
         (merge
          {:new-ids             (distinct (get-ids-in-batch (:nodes updated-package)))
@@ -813,7 +938,7 @@
 
 (defn submit-batch-job-and-wait
   [batch-package]
-  (if-not (nil? batchdb-server)
+  (if-not (nil? db-ch)
     (let [new-nodes                  (future (convert-nodes (distinct (:nodes batch-package))))
           new-nodes-update-or-create (future (convert-nodes (distinct (:nodes-update-or-create batch-package))))
           new-nodes-update           (future (convert-nodes (distinct (:nodes-update batch-package))))
@@ -830,13 +955,13 @@
                       :fulltext-indices       (add-main-ft-idx (:fulltext-indices batch-package)))
               persistent!)]
       (>!!
-       batchdb-server
-       [:batch
-        (merge
-         {:new-ids             (distinct (get-ids-in-batch (:nodes updated-package)))
-          :index-targets       (identify-index-targets updated-package)}
-         updated-package
-         out)]
+       rw-ch
+       [[:batch
+         (merge
+          {:new-ids             (distinct (get-ids-in-batch (:nodes updated-package)))
+           :index-targets       (identify-index-targets updated-package)}
+          updated-package)]
+        out]
        (<!! out)
        (close! out)))
     (println "DB not connected")))
@@ -844,9 +969,9 @@
 ; Some jobs required or supply a response, and block until that response has been sent. This is the entry point for that.
 (defn batch-get-data
   [batch-package]
-  (if-not (nil? batchdb-server)
+  (if-not (nil? db-ch)
     (let [out (chan)]
-      (>!! batchdb-server
+      (>!! rw-ch
            [(:action batch-package)
             batch-package
             out])
@@ -860,11 +985,13 @@
   (Thread/sleep 10000)
   (info "Batch Database Shutdown Started")
   (let [out (chan)]
-    (>!! batchdb-server [:shutdown out])
+    (>!! rw-ch [:shutdown out])
     (<!! out))
   (reset! db nil)
   (info "Batch Database Shutdown Complete")
-  (close! batchdb-server))
+  (close! write-ch)
+  (close! rw-ch)
+  (close! db-ch))
 
  ; TODO: Create pre-processing environment
  ; Save intermediate files
