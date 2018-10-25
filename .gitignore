@@ -25,6 +25,7 @@ pom.xml
 *.gtf
 .gtf
 *.log
+/log
 /bin
 merged.gtf
 *.tsv
