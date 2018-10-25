@@ -2,8 +2,11 @@
   (:require [digest :as digest]
             [biotools.fasta :as fasta]
             [odg.db :as db]
+            [taoensso.timbre :as timbre]
             [odg.batch :as batch]
             [odg.db-handler :as dbh]))
+
+(timbre/refer-timbre)
 
 ; For testing...
 ; (def a (import-proteome "950" "1" "G:\\Development\\odg\\data\\950\\950_genes.cleaned.fa"))
@@ -85,6 +88,7 @@
 ; Called import-fasta in case there are future proteomes in another format
 (defn import-fasta
   [species version filename]
+  (info "Importing proteome for" species version filename)
   (let [data (get-from-file filename)
         proteins-existing (into
                             {}

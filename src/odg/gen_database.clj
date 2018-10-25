@@ -57,61 +57,6 @@
 
 (timbre/refer-timbre)
 
-(defn test-import
-  []
-; Ontologies: Working as of 2015-02-23
-; Spawn threads, not fibers! And then p/join to wait for completion
-;  (submit-batch-job
-;    (odg.ontologies/import-obo "GO" "G:/data/go.obo.txt"))
-;  (submit-batch-job
-;    (odg.ontologies/import-obo "PO" "G:/data/plant_ontology.obo.txt"))
-;  (submit-batch-job
-;    (odg.ontologies/import-obo "PSI-MI" "G:/data/psi-mi.obo.txt"))
-
-  (info "Returned from blastp import")
-
-  (Thread/sleep 5000)
-
-  (expression/parse
-    {:global {:fpkm_minimum "10" :pearson_correlation_absolute_cutoff "0.85"}}
-    "Medicago truncatula"
-    "4.0"
-    "data/Mt4.0/genes.fpkm_tracking"
-    "data/Mt4.0/merged.gtf")
-
-  (Thread/sleep 5000)
-
-  (expression/parse
-    {:global {:fpkm_minimum "10" :pearson_correlation_absolute_cutoff "0.85"}}
-    "Arabidopsis thaliana"
-    "10"
-    "data/At10/genes.fpkm_tracking"
-    "data/At10/merged.gtf")
-
-  (Thread/sleep 5000)
-
-  (expression/parse
-    {:global {:fpkm_minimum "10" :pearson_correlation_absolute_cutoff "0.85"}}
-    "Glycine max"
-    "1.1"
-    "data/Gm1.1/genes.fpkm_tracking"
-    "data/Gm1.1/merged.gtf")
-
-  (Thread/sleep 5000)
-
-  (pathways/import-pathway "Arabidopsis thaliana" "10" "data/At10/aracyc_pathways.20140902")
-  (pathways/import-pathway "Glycine max" "1.1" "data/Gm1.1/soycyc_pathways.20140902")
-
-  (info "Importing Biogrid Data")
-
-  (biogrid/import-psi-mitab "Arabidopsis thaliana" "10" "data/biogrid/BIOGRID-ORGANISM-Arabidopsis_thaliana-3.3.122.mitab.txt")
-  (biogrid/import-psi-mitab "Glycine max" "1.1" "data/biogrid/BIOGRID-ORGANISM-Glycine_max-3.3.122.mitab.txt"))
-
-  ; And blastn import (esp. mirbase)
-
-
-
-
 ; base: /localhome/msiworkspace/odg/data/
 (defn get-mirbase-files
   [genomes]

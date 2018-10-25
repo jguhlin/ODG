@@ -32,19 +32,19 @@
 (set! *warn-on-reflection* true)
 
 (timbre/refer-timbre)
-(timbre/set-config! {:appenders
-                     {:standard-out
-                      {:enabled? false}
-                      :spit
-                      {:enabled? true
-                       :async? true
-                       :spit-filename "log/run.log"
-                       :fn (fn
-                             [{:keys [ap-config output]}]
-                             (when-let [filename (:spit-filename ap-config)]
-                               (println output)
-                               (try (spit filename (str output "\n") :append true)
-                                 (catch java.io.IOException _))))}}})
+;(timbre/set-config! {:appenders
+;                     {:standard-out
+;                      {:enabled? true}
+;                      :spit
+;                      {:enabled? true
+;                       :async? true
+;                       :spit-filename "log/run.log"
+;                       :fn (fn
+;                             [{:keys [ap-config output]}]
+;                             (when-let [filename (:spit-filename ap-config)]
+;                               (println output)
+;                               (try (spit filename (str output "\n") :append true)
+;                                 (catch java.io.IOException _))
 
 (timbre/set-level! :debug)
 
@@ -186,8 +186,6 @@
         "create-scripts" (scripts/create @config options (rest args))
         "import-po-associations" (ontologies/associations-cli @config options (rest args))
         "import-biogrid" (biogrid/import-cli @config options (rest args))
-
-        "test-import" (gen-database/test-import)
 
         ; Query Fn's
 

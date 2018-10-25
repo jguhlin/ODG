@@ -6,18 +6,18 @@
    [criterium.core :as cc])
 
   (:import
-    (org.neo4j.graphdb NotFoundException
-                       NotInTransactionException
-                       RelationshipType
-                       DynamicLabel
-                       Label)
-    (org.neo4j.unsafe.batchinsert
-                      BatchInserter
-                      BatchInserters
-                      BatchInserterIndexProvider
-                      BatchInserterIndex)
+   (org.neo4j.graphdb NotFoundException
+                      NotInTransactionException
+                      RelationshipType
+                      DynamicLabel
+                      Label)
+   (org.neo4j.unsafe.batchinsert
+    BatchInserter
+    BatchInserters
+    BatchInserterIndexProvider
+    BatchInserterIndex)
    (org.neo4j.index.lucene.unsafe.batchinsert
-      LuceneBatchInserterIndexProvider)))
+    LuceneBatchInserterIndexProvider)))
 
 (set! *warn-on-reflection* true)
 
@@ -506,7 +506,7 @@
                               start-node
                               end-node
                               rel-type
-                              properties))))
+                              properties))))))
 ;        (do ; if conditions above are false
 ;          (if (and (string? start) (not (get nodes-map start)))
 ;           (println start "not found! Start of rel"))
@@ -519,42 +519,41 @@
 ;                     "nodes-map:" (count nodes-map)
 ;                     "nodes-map:" (class nodes-map)
 ;                     )))))
-    1))
+
 
 ; Re-implementing batchdb-server as async channels
 
 ; Async server, buffer up to 10k operations
 (def batchdb-server (chan 10000))
 
-(defn -db-connect [^String db_path memory & [out]]
+(defn -db-connect [^String db_path memory]
   (println "Starting Batch Database at" db_path "with" memory)
   (let [db (org.neo4j.unsafe.batchinsert.BatchInserters/inserter
-             (java.io.File. db_path)
-             (java.util.HashMap.
-               {"dbms.pagecache.memory" memory
-                "dump_configuration" "true"
-                "cache_type" "soft"}))
+            (java.io.File. db_path)
+            (java.util.HashMap.
+             {"dbms.pagecache.memory" memory
+              "dump_configuration" "true"
+              "cache_type" "soft"}))
         index-manager (org.neo4j.index.lucene.unsafe.batchinsert.LuceneBatchInserterIndexProvider. db)]
     (swap!
-      state
-      merge
-      {:db db
-       :index-manager index-manager
-       :mapping {}}))
-  (when out
-    (<! out :connected)))
+     state
+     merge
+     {:db db
+      :index-manager index-manager
+      :mapping {}}))
+  :connected)
 
 (defn -load-mapping [mapping-file]
   (swap!
-    state
-    merge
-    {:mapping
-      (into
-        {}
-        (with-open [rdr (clojure.java.io/reader mapping-file)]
-          (doall
-            (for [[main-id & alt-ids] (map (fn [x] (clojure.string/split x #"\t")) (line-seq rdr))]
-              {main-id alt-ids}))))}))
+   state
+   merge
+   {:mapping
+    (into
+     {}
+     (with-open [rdr (clojure.java.io/reader mapping-file)]
+       (doall
+        (for [[main-id & alt-ids] (map (fn [x] (clojure.string/split x #"\t")) (line-seq rdr))]
+          {main-id alt-ids}))))}))
 
 ; Batch DB server's main go loop
 (defn execute-message
@@ -570,25 +569,23 @@
           idx (get-node-index index-manager index-name)]
       idx)
     ; Main place where things will happen
-    :batch (let [[batch-package & [out]] (rest message)
+    :batch (let [batch-package (rest message)
                  ^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)
                  index-manager (:index-manager @state)
-                 mapping       (:mapping @state)
-                 results (handle-batch db index-manager mapping batch-package)]
-             (when out
-               (>! out results)))
+                 mapping       (:mapping @state)]
+            (handle-batch db index-manager mapping batch-package))
 
-    :node (let [[^java.util.Map node-properties node-labels & [out]] (rest message)
-                 ^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)
-                 results (.createNode db node-properties node-labels)]
+
+    :node (let [[^java.util.Map node-properties node-labels] (rest message)
+                ^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)
+                results (.createNode db node-properties node-labels)]
             (println "DB:" db)
             (println "Props:" node-properties)
             (println "Labels:" node-labels)
-            (when out
-              (>! out)))
+            results)
 
     :query-properties
-    (let [[data out] (rest message)
+    (let [data (rest message)
           index-name (:index data)
           index-manager (:index-manager @state)
           idx (get-node-index index-manager index-name)
@@ -599,27 +596,26 @@
         (for [id (:query data)]
           (if-let [results (query-index idx id)]
             (let [results-fn (if (:results-fn data) (:results-fn data) identity)]
-              (>! out
-                  [id
-                   ((:results-fn data)
-                    (.getNodeProperties
-                     db
-                     (if (:filter-fn data)
-                       (some (fn [node-id]
-                               ((:filter-fn data)
-                                node-id
-                                (.getNodeProperties
-                                  db
-                                  node-id)
-                                (map
-                                  (fn [x] (.name x))
-                                  (.getNodeLabels
-                                    db
-                                    node-id
-                                    results)))))
-                       (first results))))])))))))
+              [id
+               ((:results-fn data)
+                (.getNodeProperties
+                 db
+                 (if (:filter-fn data
+                                 (some (fn [node-id]
+                                         ((:filter-fn data)
+                                          node-id
+                                          (.getNodeProperties
+                                           db
+                                           node-id)
+                                          (map
+                                           (fn [x] (.name x))
+                                           (.getNodeLabels
+                                            db
+                                            node-id
+                                            results)))))
+                                 (first results)))))]))))))
 
-    :query (let [[data out] (rest message)
+    :query (let [data (rest message)
                  index-name (:index data)
                  index-manager (:index-manager @state)
                  idx (get-node-index index-manager index-name)
@@ -631,18 +627,19 @@
                identity
                (for [id (:query data)]
                  (if-let [results (query-index idx id)]
-                       ; :alt-id-fn REMOVED as it is no longer used. Left here because it could be very useful
-                       ;(if (:alt-id-fn data) ; Remodel so it can support multiple outputs
-                       ; Only being used in interproscan so far
-                       ;(query-index idx ((:alt-id-fn data) id))))]
-                   (>! out
-                       [id
-                        (if (:filter-fn data)
-                          (first (filter (fn [node-id] ((:filter-fn data)
-                                                        node-id
-                                                        (.getNodeProperties db node-id)
-                                                        (map (fn [x] (.name x)) (.getNodeLabels db node-id)))) results))
-                          (first results))]))))))
+                             ; :alt-id-fn REMOVED as it is no longer used. Left here because it could be very useful
+                             ;(if (:alt-id-fn data) ; Remodel so it can support multiple outputs
+                             ; Only being used in interproscan so far
+                             ;(query-index idx ((:alt-id-fn data) id))))]
+                   [id
+                    (if (:filter-fn data)
+                      (first
+                       (filter
+                        (fn [node-id] ((:filter-fn data)
+                                       node-id
+                                       (.getNodeProperties db node-id)
+                                       (map (fn [x] (.name x)) (.getNodeLabels db node-id)))) results))
+                      (first results))])))))
 
     ; Create rel does not return anything
     :rel (let [[start end rel-type rel-properties] (rest message)]
@@ -663,15 +660,24 @@
                       labels])))))
 
     :shutdown
-    (let [out (rest message)]
-      (println "Shutting down")
       (let [^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)
             ^LuceneBatchInserterIndexProvider index-manager (:index-manager @state)]
+        (println "Shutting down")
         (.shutdown index-manager)
         (.shutdown db)
         (swap! state merge {:db nil})
-        (when out
-          (<! out :shutdown))))))
+        :shutdown)))
+
+; 3 channels
+; db channel, single threaded and handles all interactions with the database
+; write-ch -- Write-only operations to the database (reusable out channel is provided, but never returns)
+; read & write channel - Read & Write operations to the database, returns a value
+
+(defn start-db-server []
+  (go-loop [[message out] (<! db-server)]
+    (when message
+      (>! out (execute-db-message message)))
+    (recur (<!-))))
 
 (defn start-dbh-server []
   (go-loop [message (<! batchdb-server)]
@@ -681,9 +687,10 @@
 
 (defn connect [db_path memory]
   (reset! db nil)
+  (start-dbh-server)
   (let [out (chan)]
-    (>!! batchdb-server [:connect db_path memory out])
-    (<!! out))) ; Wait until connection is complete
+    (>!! batchdb-server [:connect db_path memory])
+    (<!! out))) ; Wait until connection is complete before continuing
 
 (defn load-mapping [mapping-file]
   (>!! batchdb-server [:load-mapping mapping-file]))
@@ -766,17 +773,17 @@
 (defn add-labels-to-node
   [node-id labels]
   (>!!
-    batchdb-server
-    [:add-labels-to-node
-     node-id
-     labels]))
+   batchdb-server
+   [:add-labels-to-node
+    node-id
+    labels]))
 
 (defn submit-batch-job
   [batch-package]
   (info "Batch Job, Indices: " (:indices batch-package))
   (info "Batch Job, Rels: " (count (:rels batch-package)))
 
-  (if-not (nil? @db)
+  (if-not (nil? batchdb-server)
     (let [new-nodes                  (future (doall (convert-nodes (distinct (:nodes batch-package)))))
           new-nodes-update-or-create (future (doall (convert-nodes (distinct (:nodes-update-or-create batch-package)))))
           new-nodes-update           (future (doall (convert-nodes (distinct (:nodes-update batch-package)))))
@@ -795,18 +802,18 @@
                       :indices                (add-main-idx (into [] (:indices batch-package)))
                       :fulltext-indices       (add-main-ft-idx (into [] (:fulltext-indices batch-package))))
               persistent!)]
-         (>!!
-           batchdb-server
-           [:batch
-            (merge
-             {:new-ids             (distinct (get-ids-in-batch (:nodes updated-package)))
-              :index-targets       (identify-index-targets updated-package)}
-             updated-package)]))
+      (>!!
+       batchdb-server
+       [:batch
+        (merge
+         {:new-ids             (distinct (get-ids-in-batch (:nodes updated-package)))
+          :index-targets       (identify-index-targets updated-package)}
+         updated-package)]))
     (println "DB not connected")))
 
 (defn submit-batch-job-and-wait
   [batch-package]
-  (if-not (nil? @db)
+  (if-not (nil? batchdb-server)
     (let [new-nodes                  (future (convert-nodes (distinct (:nodes batch-package))))
           new-nodes-update-or-create (future (convert-nodes (distinct (:nodes-update-or-create batch-package))))
           new-nodes-update           (future (convert-nodes (distinct (:nodes-update batch-package))))
@@ -823,13 +830,13 @@
                       :fulltext-indices       (add-main-ft-idx (:fulltext-indices batch-package)))
               persistent!)]
       (>!!
-        batchdb-server
-        [:batch
-         (merge
-           {:new-ids             (distinct (get-ids-in-batch (:nodes updated-package)))
-            :index-targets       (identify-index-targets updated-package)}
-           updated-package
-          out)]
+       batchdb-server
+       [:batch
+        (merge
+         {:new-ids             (distinct (get-ids-in-batch (:nodes updated-package)))
+          :index-targets       (identify-index-targets updated-package)}
+         updated-package
+         out)]
        (<!! out)
        (close! out)))
     (println "DB not connected")))
@@ -837,12 +844,12 @@
 ; Some jobs required or supply a response, and block until that response has been sent. This is the entry point for that.
 (defn batch-get-data
   [batch-package]
-  (if-not (nil? @db)
+  (if-not (nil? batchdb-server)
     (let [out (chan)]
       (>!! batchdb-server
-        [(:action batch-package)
-         batch-package
-         out])
+           [(:action batch-package)
+            batch-package
+            out])
          ; Causes this to wait until a response is available...
       (let [results (<!! out)]
         (close! out)
