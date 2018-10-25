@@ -95,11 +95,12 @@
 
 ; Get node-index
 (defn get-node-index
-  ([^LuceneBatchInserterIndexProvider index-manager indexname]
-   (let [idx (.nodeIndex index-manager indexname {"type" "exact" "to_lower_case" "true"})]
-     (.flush idx)
-      ; (.setCacheCapacity idx "id" 500)
-     idx)))
+  [^LuceneBatchInserterIndexProvider index-manager indexname]
+  (debug "get-node-index " indexname index-manager)
+  (let [idx (.nodeIndex index-manager indexname {"type" "exact" "to_lower_case" "true"})]
+      (.flush idx)
+        ; (.setCacheCapacity idx "id" 500)
+      idx))
 
 ; Get fulltext index
 (defn get-fulltext-node-index
@@ -506,7 +507,7 @@
                               start-node
                               end-node
                               rel-type
-                              properties))))))
+                              properties)))))
 ;        (do ; if conditions above are false
 ;          (if (and (string? start) (not (get nodes-map start)))
 ;           (println start "not found! Start of rel"))
@@ -519,7 +520,7 @@
 ;                     "nodes-map:" (count nodes-map)
 ;                     "nodes-map:" (class nodes-map)
 ;                     )))))
-
+  1)
 
 ; Re-implementing batchdb-server as async channels
 
@@ -553,122 +554,8 @@
           {main-id alt-ids}))))}))
 
 ; This fn handles all direct database operations
-(defn execute-db-message
-  [message])
 
 ; Batch DB server's main go loop
-
-(defn execute-message
-  [message]
-  (case (first message)
-    :connect (apply -db-connect (rest message))
-    :load-mapping (apply -load-mapping (rest message))
-    ; Exclusively for debugging purposes...
-    :get-db (let [dbd (:db @state)] dbd)
-    :get-node-index
-    (let [[index-name] (rest message)
-          index-manager (:index-manager @state)
-          idx (get-node-index index-manager index-name)]
-      idx)
-    ; Main place where things will happen
-    :batch (let [batch-package (rest message)
-                 ^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)
-                 index-manager (:index-manager @state)
-                 mapping       (:mapping @state)]
-            (handle-batch db index-manager mapping batch-package))
-
-
-    :node (let [[^java.util.Map node-properties node-labels] (rest message)
-                ^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)
-                results (.createNode db node-properties node-labels)]
-            (println "DB:" db)
-            (println "Props:" node-properties)
-            (println "Labels:" node-labels)
-            results)
-
-    :query-properties
-    (let [data (rest message)
-          index-name (:index data)
-          index-manager (:index-manager @state)
-          idx (get-node-index index-manager index-name)
-          ^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)]
-      (doall
-       (filter
-        identity
-        (for [id (:query data)]
-          (if-let [results (query-index idx id)]
-            (let [results-fn (if (:results-fn data) (:results-fn data) identity)]
-              [id
-               ((:results-fn data)
-                (.getNodeProperties
-                 db
-                 (if (:filter-fn data
-                                 (some (fn [node-id]
-                                         ((:filter-fn data)
-                                          node-id
-                                          (.getNodeProperties
-                                           db
-                                           node-id)
-                                          (map
-                                           (fn [x] (.name x))
-                                           (.getNodeLabels
-                                            db
-                                            node-id
-                                            results)))))
-                                 (first results)))))]))))))
-
-    :query (let [data (rest message)
-                 index-name (:index data)
-                 index-manager (:index-manager @state)
-                 idx (get-node-index index-manager index-name)
-                 ^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)]
-             (.flush idx)
-             (debug "Query called, using " (:index data))
-             (doall
-              (filter
-               identity
-               (for [id (:query data)]
-                 (if-let [results (query-index idx id)]
-                             ; :alt-id-fn REMOVED as it is no longer used. Left here because it could be very useful
-                             ;(if (:alt-id-fn data) ; Remodel so it can support multiple outputs
-                             ; Only being used in interproscan so far
-                             ;(query-index idx ((:alt-id-fn data) id))))]
-                   [id
-                    (if (:filter-fn data)
-                      (first
-                       (filter
-                        (fn [node-id] ((:filter-fn data)
-                                       node-id
-                                       (.getNodeProperties db node-id)
-                                       (map (fn [x] (.name x)) (.getNodeLabels db node-id)))) results))
-                      (first results))])))))
-
-    ; Create rel does not return anything
-    :rel (let [[start end rel-type rel-properties] (rest message)]
-           (create-rel (:db @state) start end rel-type rel-properties))
-
-    ; Add label to node
-    :add-labels-to-node
-    (let [[node-id labels] (rest message)
-          ^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)]
-      (.setNodeLabels
-       db
-       node-id
-       (into-array org.neo4j.graphdb.Label
-                   (distinct
-                    (reduce
-                     into []
-                     [(.getNodeLabels db node-id)
-                      labels])))))
-
-    :shutdown
-    (let [^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)
-          ^LuceneBatchInserterIndexProvider index-manager (:index-manager @state)]
-      (println "Shutting down")
-      (.shutdown index-manager)
-      (.shutdown db)
-      (swap! state merge {:db nil})
-      :shutdown)))
 
 ; 3 channels
 ; db channel, single threaded and handles all interactions with the database
@@ -681,6 +568,7 @@
 (def rw-ch (chan 1000))
 
 (defn query [data]
+  (debug "In query....")
   (let [index-name (:index data)
         index-manager (:index-manager @state)
         idx (get-node-index index-manager index-name)
@@ -724,18 +612,19 @@
                 (.getNodeProperties
                   db
                   (if (:filter-fn data)
-                    (some (fn [node-id])
-                      ((:filter-fn data))
-                      node-id
-                      (.getNodeProperties
-                        db
-                        node-id)
-                      (map
-                        (fn [x] (.name x)
-                          (.getNodeLabels
-                            db
-                            node-id)))
-                      results)
+                    (some
+                      (fn [node-id]
+                        ((:filter-fn data))
+                        node-id
+                        (.getNodeProperties
+                          db
+                          node-id)
+                        (map
+                          (fn [x] (.name x)
+                            (.getNodeLabels
+                              db
+                              node-id)))
+                        results))
                     (first results))))])))))))
 
 
@@ -743,9 +632,10 @@
 ; Potentially use async/thread here? Maybe in the future?
 (defn start-db-ch [] ; Single thread
   (go-loop [[message out] (<! db-ch)]
+    (debug "in db-ch")
+    (println message)
     (when message
-      (>!
-        out
+      (>! out
         (case (first message)
           :connect (apply -db-connect (rest message))
           :load-mapping (apply -load-mapping (rest message))
@@ -812,10 +702,14 @@
   (start-db-ch)
   (start-write-ch)
   (start-rw-ch)
+  (debug "Connecting to database")
 
   (let [out (chan)]
     (>!! rw-ch [[:connect db_path memory] out])
-    (<!! out))) ; Wait until connection is complete before continuing
+    (<!! out))
+  (debug "Connected to database!"))
+
+     ; Wait until connection is complete before continuing
 
 (defn load-mapping [mapping-file]
   (>!! write-ch [:load-mapping mapping-file]))
@@ -969,15 +863,18 @@
 ; Some jobs required or supply a response, and block until that response has been sent. This is the entry point for that.
 (defn batch-get-data
   [batch-package]
+  (debug "Entering batch-get-data")
   (if-not (nil? db-ch)
     (let [out (chan)]
+      (debug "Submitting to channel")
       (>!! rw-ch
-           [(:action batch-package)
-            batch-package
+           [[(:action batch-package) batch-package]
             out])
          ; Causes this to wait until a response is available...
+      (debug "Finished submitting to channel")
       (let [results (<!! out)]
         (close! out)
+        (debug "Batch get data finished")
         results))
     (println "DB not connected")))
 
