@@ -8,6 +8,7 @@
 * Add support for multiple GFF files 
 * Support for genome prediction pipelines
 * Use DIAMOND to BLASTP against RefSeq and Swiss-PROT
-* Run diamond on command, instead of separately.
+* Run diamond when needed, instead of separately (so it's a single step for everything!
 * Add all to singularity container if possible!
 * Update query GUI to be more like jbrowse / gbrowse
+* Protobuf genome files
