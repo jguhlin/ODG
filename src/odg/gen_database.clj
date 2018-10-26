@@ -316,14 +316,15 @@
     (dbh/submit-batch-job
       (hmmer/import-hmmer-tbl (.getAbsolutePath file) nil nil)))
 
-  (info "Pausing for a minute to let everything finish")
+  (info "Pausing for 60s to let other threads finish")
 
   (Thread/sleep 60000)
 
-  (info "Pause finished, shutting down")
+  (info "Pause finished, beginning shutdown procedure")
 
     ;
-    ; This is where the database switches to regular mode, rather than batch mode!
+    ; Database switches to regular, non-batch mode here
+    ; To facilitate creating indexes and such
     ;
     ; !!!!!!!!!!!!!!!!!!!!
     ; !!!!!!!!!!!!!!!!!!!!
