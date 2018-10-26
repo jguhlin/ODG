@@ -16,3 +16,5 @@
 * Save GO terminology into intermediate, faster file
 * Generic TSV, CSV import
 * EggNOG integration
+* Convert Config & Query GUI to Reagent
+* Use QUIL for GUI
