@@ -1,7 +1,7 @@
 (ns odg.db-handler
   (:require
    [taoensso.timbre :as timbre]
-   [clojure.core.async :as async :refer [chan >! >!! <! <!! close! go-loop]]
+   [clojure.core.async :as async :refer [chan >! >!! <! <!! close! go-loop dropping-buffer]]
    [clojure.core.reducers :as r]
    [criterium.core :as cc])
 
@@ -197,12 +197,13 @@
 ; Add more fields when necessary
 (defn get-ids-in-batch
   [nodes]
-  (into #{}
-        (flatten
-         (filter
+  (into []
+    (into #{}
+      (flatten
+        (filter
           identity
           (concat
-           (map (comp get-ids first) nodes))))))
+            (map (comp get-ids first) nodes)))))))
 
 (defn get-relationship-endpoints
   [rels]
@@ -393,7 +394,6 @@
 ; TODO: Add support for exact-ids in other logic
 (defn handle-batch
   [^org.neo4j.unsafe.batchinsert.BatchInserter db index-manager mapping data]
-
   (info "Handle batch entered... " (:comment data) " " (:indices data))
 
   (let [new-ids           (:new-ids data)
@@ -428,7 +428,10 @@
                             (hb-query-ids-
                              (get-node-index index-manager (first (:indices data)))
                              index-targets)
-                            created-nodes-map))]; Update nodes as necessary....
+                            created-nodes-map))]  ; Update nodes as necessary....
+
+    (debug "Inside main handle-batch loop")
+
     (doseq [[properties labels] (concat nodes-to-update (:nodes-update data))]
       (if-let [node-id (get nodes-map (get properties "id"))]
         (update-node
@@ -445,6 +448,8 @@
           (println properties)
           (println (:indices data))
           (println (keys data))))); TODO: Add updated nodes updated properties to index with .updateOrAdd
+
+    (debug "HANDLE-BATCH 2")
     (doseq [^BatchInserterIndex idx (map (partial get-node-index index-manager) (:indices data))]
       (doseq [[val node-id] created-nodes-map]
         (.add idx node-id {"id" val})
@@ -452,6 +457,8 @@
           (doseq [alt-id alt-ids]
             (.add idx node-id {"id" alt-id}))))
       (.flush idx))
+
+    (debug "HANDLE-BATCH 3")
 
     ; TODO: Later, add additional fields to fulltext index, especially for GO terms and similar
     (doseq [^BatchInserterIndex idx (map (partial get-fulltext-node-index index-manager) (:fulltext-indices data))]
@@ -467,8 +474,9 @@
 
       (.flush idx))
 
-    (doseq [[rel-type start end properties] (:rels data)]
+    (debug "HANDLE-BATCH 4")
 
+    (doseq [[rel-type start end properties] (:rels data)]
       (when
        (not
         (and
@@ -520,7 +528,8 @@
 ;                     "nodes-map:" (count nodes-map)
 ;                     "nodes-map:" (class nodes-map)
 ;                     )))))
-  1)
+  (debug "HANDLE-BATCH 5")
+  :finished)
 
 ; Re-implementing batchdb-server as async channels
 
@@ -628,85 +637,94 @@
                     (first results))))])))))))
 
 
-; TODO:
-; Potentially use async/thread here? Maybe in the future?
+; TODO: Potentially use async/thread here? Maybe in the future?
 (defn start-db-ch [] ; Single thread
-  (go-loop [[message out] (<! db-ch)]
-    (debug "in db-ch")
-    (println message)
-    (when message
-      (>! out
-        (case (first message)
-          :connect (apply -db-connect (rest message))
-          :load-mapping (apply -load-mapping (rest message))
-          :get-db (:db @state)
-          :get-node-index (let [[index-name] (rest message)
-                                index-manager (:index-manager @state)]
-                            (get-node-index index-manager index-name))
-          :batch (let [batch-package (rest message)
-                       ^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)
-                       index-manager (:index-manager @state)
-                       mapping       (:mapping @state)]
-                   (handle-batch db index-manager mapping batch-package))
-          :node (let [[^java.util.Map node-properties node-labels] (rest message)
-                      ^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)]
-                  (.createNode db node-properties node-labels))
-          ; TODO:
-          :query-properties (apply query-properties (rest message))
-          :query (apply query (rest message))
-          :rel (let [[start end rel-type rel-properties] (rest message)]
-                 (create-rel (:db @state) start end rel-type rel-properties))
-          :add-labels-to-node (let [[node-id labels] (rest message)
-                                    ^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)]
-                                (.setNodeLabels
-                                  db
-                                  node-id
-                                  (into-array org.neo4j.graphdb.Label
-                                    (distinct
-                                      (reduce
-                                        into []
-                                        [(.getNodeLabels db node-id)]
-                                        labels)))))
+  (go-loop []
+    (when-let [packet (<! db-ch)]
+      (let [[message out] (if (vector? packet) packet [:err :err])]
+        (debug "In DBCH" (first message) out)
+        (>! out
+          (case (first message)
+            :connect (apply -db-connect (rest message))
+            :load-mapping (apply -load-mapping (rest message))
+            :get-db (:db @state)
+            :get-node-index (let [[index-name] (rest message)
+                                  index-manager (:index-manager @state)]
+                              (get-node-index index-manager index-name))
+            :batch (let [[batch-package] (rest message)
+                         ^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)
+                         index-manager (:index-manager @state)
+                         mapping       (:mapping @state)]
+                     (do
+                       (debug "Starting handle-batch")
+                       (handle-batch db index-manager mapping batch-package)
+                       (debug "Finished handle-batch")
+                       :completed))
+            :node (let [[^java.util.Map node-properties node-labels] (rest message)
+                        ^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)]
+                    (.createNode db node-properties node-labels))
+            :query-properties (apply query-properties (rest message))
+            :query (apply query (rest message))
+            :rel (let [[start end rel-type rel-properties] (rest message)]
+                   (create-rel (:db @state) start end rel-type rel-properties))
+            :add-labels-to-node (let [[node-id labels] (rest message)
+                                      ^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)]
+                                  (.setNodeLabels
+                                    db
+                                    node-id
+                                    (into-array org.neo4j.graphdb.Label
+                                      (distinct
+                                        (reduce
+                                          into []
+                                          [(.getNodeLabels db node-id)]
+                                          labels)))))
+            :shutdown (let [^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)
+                            ^LuceneBatchInserterIndexProvider index-manager (:index-manager @state)]
+                        (info "Shutting down batch database")
+                        (.shutdown index-manager)
+                        (.shutdown db)
+                        (swap! state merge {:db nil})
+                        :shutdown)
+            :error))
+        (debug "Finished " (first message))
+        (debug "DBCH Loop complete, restarting...")
+        (recur)))))
 
-          :shutdown (let [^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)
-                          ^LuceneBatchInserterIndexProvider index-manager (:index-manager @state)]
-                      (println "Shutting down")
-                      (.shutdown index-manager)
-                      (.shutdown db)
-                      (swap! state merge {:db nil})
-                      :shutdown))))
 
-    (recur (<! db-ch))))
 
 ; Write-ch returns nothing, so we have a reusable return-ch we use
 (defn start-write-ch []
   (doseq [_ (range 100)] ; 100 Write threads
-    (let [return-ch (chan)]
-      (go-loop [message (<! write-ch)]
-        (when message
-          (>! db-ch [message return-ch]))
-        (recur (<! write-ch))))))
+    (let [return-ch (chan (dropping-buffer 1))]
+      (go-loop []
+        (when-let [message (<! write-ch)]
+          (>! db-ch [message return-ch])
+          (recur))))))
 
 ; For reading, writing, or BOTH
 ; Will block while waiting for a return value
 (defn start-rw-ch []
-  (doseq [_ (range 10)] ; 10 Read & Write threads
-    (go-loop [[message return-ch] (<! rw-ch)]
-      (when message
-        (>! db-ch [message return-ch])
-        (<! return-ch))
-      (recur (<! rw-ch)))))
+  (doseq [_ (range 1)] ; 10 Read & Write threads
+    (go-loop []
+      (when-let [packet (<! rw-ch)]
+        (println "In RW...")
+        (>! db-ch packet)
+        (println "RW submitted.... restarting loop")
+        (recur)))))
+
+(def db-go-loop (atom nil))
 
 (defn connect [db_path memory]
   (reset! db nil)
-  (start-db-ch)
+  (reset! db-go-loop (start-db-ch))
   (start-write-ch)
   (start-rw-ch)
   (debug "Connecting to database")
 
   (let [out (chan)]
     (>!! rw-ch [[:connect db_path memory] out])
-    (<!! out))
+    (println (<!! out))
+    (close! out))
   (debug "Connected to database!"))
 
      ; Wait until connection is complete before continuing
@@ -718,10 +736,11 @@
 (defn- convert-map-previous
   [m]
   (doall
-   (apply merge
-          (for [[k v] m
-                :when (and (not= "." v) (not (nil? v)))]
-            {(name k) v}))))
+   (apply
+     merge
+     (for [[k v] m
+           :when (and (not= "." v) (not (nil? v)))]
+       {(name k) v}))))
 
 (defn- convert-map
   [m]
@@ -820,14 +839,20 @@
                       :comment                (:comment batch-package)
                       :indices                (add-main-idx (into [] (:indices batch-package)))
                       :fulltext-indices       (add-main-ft-idx (into [] (:fulltext-indices batch-package))))
-              persistent!)]
+              persistent!)
+
+          final-package
+          [:batch
+           (doall
+             (merge
+               {:new-ids        (distinct (get-ids-in-batch (:nodes updated-package)))
+                :index-targets  (identify-index-targets updated-package)}
+               updated-package))]]
+
       (>!!
        write-ch
-       [:batch
-        (merge
-         {:new-ids             (distinct (get-ids-in-batch (:nodes updated-package)))
-          :index-targets       (identify-index-targets updated-package)}
-         updated-package)]))
+       final-package))
+
     (println "DB not connected")))
 
 (defn submit-batch-job-and-wait
@@ -863,32 +888,33 @@
 ; Some jobs required or supply a response, and block until that response has been sent. This is the entry point for that.
 (defn batch-get-data
   [batch-package]
-  (debug "Entering batch-get-data")
   (if-not (nil? db-ch)
     (let [out (chan)]
-      (debug "Submitting to channel")
       (>!! rw-ch
            [[(:action batch-package) batch-package]
             out])
          ; Causes this to wait until a response is available...
-      (debug "Finished submitting to channel")
       (let [results (<!! out)]
         (close! out)
-        (debug "Batch get data finished")
         results))
     (println "DB not connected")))
 
 (defn shutdown []
-  (Thread/sleep 10000)
+  (info "Starting batch database shutdown procedure")
+  (Thread/sleep 1000)
+  (Thread/sleep 1000)
   (info "Batch Database Shutdown Started")
   (let [out (chan)]
-    (>!! rw-ch [:shutdown out])
+    (>!! rw-ch [[:shutdown] out])
     (<!! out))
+  (Thread/sleep 1000)
   (reset! db nil)
   (info "Batch Database Shutdown Complete")
   (close! write-ch)
   (close! rw-ch)
-  (close! db-ch))
+  (close! db-ch)
+  ; Wait for db handler go loop to conclude
+  (println (<!! @db-go-loop)))
 
  ; TODO: Create pre-processing environment
  ; Save intermediate files
