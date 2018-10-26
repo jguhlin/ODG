@@ -1,7 +1,7 @@
 (ns odg.db-handler
   (:require
    [taoensso.timbre :as timbre]
-   [clojure.core.async :as async :refer [chan >! >!! <! <!! close! go-loop dropping-buffer]]
+   [clojure.core.async :as async :refer [chan >! >!! <! <!! close! go-loop dropping-buffer thread]]
    [clojure.core.reducers :as r]
    [criterium.core :as cc])
 
@@ -639,56 +639,57 @@
 
 ; TODO: Potentially use async/thread here? Maybe in the future?
 (defn start-db-ch [] ; Single thread
-  (go-loop []
-    (when-let [packet (<! db-ch)]
-      (let [[message out] (if (vector? packet) packet [:err :err])]
-        (debug "In DBCH" (first message) out)
-        (>! out
-          (case (first message)
-            :connect (apply -db-connect (rest message))
-            :load-mapping (apply -load-mapping (rest message))
-            :get-db (:db @state)
-            :get-node-index (let [[index-name] (rest message)
-                                  index-manager (:index-manager @state)]
-                              (get-node-index index-manager index-name))
-            :batch (let [[batch-package] (rest message)
-                         ^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)
-                         index-manager (:index-manager @state)
-                         mapping       (:mapping @state)]
-                     (do
-                       (debug "Starting handle-batch")
-                       (handle-batch db index-manager mapping batch-package)
-                       (debug "Finished handle-batch")
-                       :completed))
-            :node (let [[^java.util.Map node-properties node-labels] (rest message)
-                        ^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)]
-                    (.createNode db node-properties node-labels))
-            :query-properties (apply query-properties (rest message))
-            :query (apply query (rest message))
-            :rel (let [[start end rel-type rel-properties] (rest message)]
-                   (create-rel (:db @state) start end rel-type rel-properties))
-            :add-labels-to-node (let [[node-id labels] (rest message)
-                                      ^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)]
-                                  (.setNodeLabels
-                                    db
-                                    node-id
-                                    (into-array org.neo4j.graphdb.Label
-                                      (distinct
-                                        (reduce
-                                          into []
-                                          [(.getNodeLabels db node-id)]
-                                          labels)))))
-            :shutdown (let [^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)
-                            ^LuceneBatchInserterIndexProvider index-manager (:index-manager @state)]
-                        (info "Shutting down batch database")
-                        (.shutdown index-manager)
-                        (.shutdown db)
-                        (swap! state merge {:db nil})
-                        :shutdown)
-            :error))
-        (debug "Finished " (first message))
-        (debug "DBCH Loop complete, restarting...")
-        (recur)))))
+  (thread
+    (loop []
+      (when-let [packet (<!! db-ch)]
+        (let [[message out] (if (vector? packet) packet [:err :err])]
+          (debug "In DBCH" (first message) out)
+          (>!! out
+            (case (first message)
+              :connect (apply -db-connect (rest message))
+              :load-mapping (apply -load-mapping (rest message))
+              :get-db (:db @state)
+              :get-node-index (let [[index-name] (rest message)
+                                    index-manager (:index-manager @state)]
+                                (get-node-index index-manager index-name))
+              :batch (let [[batch-package] (rest message)
+                           ^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)
+                           index-manager (:index-manager @state)
+                           mapping       (:mapping @state)]
+                       (do
+                         (debug "Starting handle-batch")
+                         (handle-batch db index-manager mapping batch-package)
+                         (debug "Finished handle-batch")
+                         :completed))
+              :node (let [[^java.util.Map node-properties node-labels] (rest message)
+                          ^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)]
+                      (.createNode db node-properties node-labels))
+              :query-properties (apply query-properties (rest message))
+              :query (apply query (rest message))
+              :rel (let [[start end rel-type rel-properties] (rest message)]
+                     (create-rel (:db @state) start end rel-type rel-properties))
+              :add-labels-to-node (let [[node-id labels] (rest message)
+                                        ^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)]
+                                    (.setNodeLabels
+                                      db
+                                      node-id
+                                      (into-array org.neo4j.graphdb.Label
+                                        (distinct
+                                          (reduce
+                                            into []
+                                            [(.getNodeLabels db node-id)]
+                                            labels)))))
+              :shutdown (let [^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)
+                              ^LuceneBatchInserterIndexProvider index-manager (:index-manager @state)]
+                          (info "Shutting down batch database")
+                          (.shutdown index-manager)
+                          (.shutdown db)
+                          (swap! state merge {:db nil})
+                          :shutdown)
+              :error))
+          (debug "Finished " (first message))
+          (debug "DBCH Loop complete, restarting...")
+          (recur))))))
 
 
 
