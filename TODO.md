@@ -12,3 +12,7 @@
 * Add all to singularity container if possible!
 * Update query GUI to be more like jbrowse / gbrowse
 * Protobuf genome files
+* Import pre-check of all files
+* Save GO terminology into intermediate, faster file
+* Generic TSV, CSV import
+* EggNOG integration
