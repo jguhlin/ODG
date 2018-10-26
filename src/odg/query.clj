@@ -19,6 +19,14 @@
 
 (timbre/refer-timbre)
 
+; Homepage Display
+; get top 10 SCaffolds
+; MATCH (x)
+; WHERE (x:Landmark)
+; RETURN x
+; ORDER BY x.length DESC
+; LIMIT 10
+
 (def get-all-labels
   (memoize
     (fn
