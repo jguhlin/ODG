@@ -5,7 +5,7 @@
 * Support minimap2 whole genome alignments
 * Query interface improvements
 * Add additional support for gene prediction algorithms
-* Add support for multiple GFF files 
+* Add support for multiple GFF files
 * Support for genome prediction pipelines
 * Use DIAMOND to BLASTP against RefSeq and Swiss-PROT
 * Run diamond when needed, instead of separately (so it's a single step for everything!
@@ -18,3 +18,5 @@
 * EggNOG integration
 * Convert Config & Query GUI to Reagent
 * Use QUIL for GUI
+* Minimap import
+* Version 2.1? Or 2.0 if possible. Run minimap2, DIAMOND, Augustus on-demand
