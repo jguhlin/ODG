@@ -6,6 +6,7 @@
             [clojure.core.reducers :as r]
             [odg.util :as util]
             [odg.db :as db]
+            [clojure.core.async :as async :refer [chan >! >!! <! <!! close! go-loop dropping-buffer thread]]
             [biotools.gff :as gff]
             [biotools.gtf :as gtf]
             [odg.batch :as batch]
@@ -176,8 +177,6 @@
             [(:LOCATED_ON db/rels) (str (clojure.string/replace (:id node-def) ".mRNA" "") ".gene") (:landmark node-def)])
        [(:PARENT_OF db/rels) (str (clojure.string/replace (:id node-def) ".mRNA" "") ".gene") (:id node-def)])]))
 
-
-
 (defn fix-annotations
   [x]
   (let [types (set (distinct (map (comp :type first) (:nodes x))))
@@ -298,3 +297,5 @@
      (doseq [[a b] (partition 2 1 genes)]
        ; We are in a transaction, so don't use db/create-relationship here!
        (.createRelationshipTo (get a "gene") (get b "gene") (:NEXT_TO db/rels))))))
+
+;;; New code below here
