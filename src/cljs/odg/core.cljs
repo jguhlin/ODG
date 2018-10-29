@@ -55,7 +55,7 @@
 
 (defn about-page []
   (fn [] [:span.main
-          [:h1 "About odg"]]))
+          [:h1 "About odgs"]]))
 
 
 ;; -------------------------

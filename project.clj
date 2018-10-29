@@ -52,13 +52,23 @@
                                  :exclusions [org.clojure/clojure]]
             [lein-ring "0.8.11"]]
 
-  :ring {:handler odg.query-server/handler
-         :port 6789
-         :init odg.query-server/dev-init
+  :ring {:handler odg.handler/app
+         :port 3000
+         :init odg.server/start-dev
          :auto-reload? true
          :auto-refresh? true}
 
   :source-paths ["src/clj" "src/cljc"]
+
+  :figwheel {
+             :http-server-root "public"
+             :server-port 3449
+             ; :init odg.server/start-dev
+             :nrepl-port 7002
+             :nrepl-middleware [cider.piggieback/wrap-cljs-repl]
+             :css-dirs ["resources/public/css"]
+             :ring-handler odg.handler/app}
+
 
   :cljsbuild
             {:builds {:min
@@ -76,9 +86,9 @@
                           {:main "odg.dev"
                            :asset-path "/js/out"
                            :output-to "target/cljsbuild/public/js/app.js"
-                           :output-dir "target-cljsbuild/public/js/out"
+                           :output-dir "target/cljsbuild/public/js/out"
                            :source-map true
-                           :optimizations none
+                           :optimizations :none
                            :pretty-print true}}}}
 
   :resource-paths ["resources" "target/cljsbuild"]
@@ -94,6 +104,7 @@
                  [org.clojure/math.combinatorics "0.1.4"]
                  [org.clojure/math.numeric-tower "0.0.4"]
                  [iota "1.1.3"]
+                 [quil "2.7.1"]
                  [foldable-seq "0.2"]
                  [org.clojure/data.xml "0.0.8"]
                  [org.clojure/data.zip "0.1.2"]
@@ -103,6 +114,7 @@
                  [me.raynes/fs "1.4.6"]
                  [ring/ring-core "1.7.1"] ; :exclusions [org.clojure/tools.reader]]
                  [ring/ring-jetty-adapter "1.7.1"]
+                 [ring/ring-defaults "0.3.2"]
                  [ring-server "0.5.0"]
                  [reagent "0.8.1"]
                  [reagent-utils "0.3.1"]

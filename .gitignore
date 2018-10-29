@@ -72,3 +72,4 @@ nocopy*
 !/example-input-files/*
 !/example-input-files/**/*
 *.tmp
+.rebel*
