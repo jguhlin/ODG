@@ -55,7 +55,6 @@
   []
   {:genes (query/get-gene-definition-by-species)})
 
-
 (defroutes app
   (GET  "/config" [] get-species)
   (GET  "/" [] (resp/redirect "/index.html"))
