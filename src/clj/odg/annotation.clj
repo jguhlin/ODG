@@ -303,20 +303,20 @@
 ; Node entries are as such
 ; []
 
-(def create-node
-  [gff-entry]
+(defn create-node
+  [gff-entry])
   ; [{node-properties} [labels]]
 
   ; url decode all GFF property values
   ; need to add labels (should be middleware though, not in this fn)
   ; add unique _odg_id field so we can track things much better (not in this fn, middleware)
 
-  :nodes (into
-           []
-           (for [entry entries]
-             [(reduce-kv #(assoc %1 %2 (if (string? %3)
-                                         (java.net.URLDecoder/decode %3)
-                                         %3))
-                         {}
-                         (merge entry {:species species :version version}))
-              (labels [(:ANNOTATION batch/labels) (batch/dynamic-label (:type entry))])])))
+;  :nodes (into
+;           []
+;           (for [entry entries]
+;             [(reduce-kv #(assoc %1 %2 (if (string? %3)
+;                                         (java.net.URLDecoder/decode %3)
+;                                         %3
+;                         {}
+;                         (merge entry {:species species :version version})
+;              (labels [(:ANNOTATION batch/labels) (batch/dynamic-label (:type entry))])])
