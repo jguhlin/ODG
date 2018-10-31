@@ -74,9 +74,9 @@
       (when-not (or (nil? x) (clojure.string/blank? x))
        (org.neo4j.graphdb.DynamicLabel/label x)))))
 
-(def labels {:GENE (org.neo4j.graphdb.DynamicLabel/label "Gene")
+(def labels {:GENE (org.neo4j.graphdb.DynamicLabel/label "gene")
              :MRNA (org.neo4j.graphdb.DynamicLabel/label "mRNA")
-             :PROTEIN (org.neo4j.graphdb.DynamicLabel/label "Protein")
+             :PROTEIN (org.neo4j.graphdb.DynamicLabel/label "protein")
              :LANDMARK (org.neo4j.graphdb.DynamicLabel/label "Landmark")
              :LANDMARK_HASH (org.neo4j.graphdb.DynamicLabel/label "LandmarkHash")
              :SPECIES_ROOT (org.neo4j.graphdb.DynamicLabel/label "SpeciesRoot")

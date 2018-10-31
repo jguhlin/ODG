@@ -62,8 +62,9 @@
 ; UPDATED FOR ACTOR SYSTEM
 ; BUT UNTESTED
 (defn import-gtf
-  "Batch import GTF file into existing database. Differs very little over the GFF parser.
-  Has additional support for creating gene records, however. Designed for cufflinks created GTF files at this time."
+  "Batch import GTF file into existing database. Differs very little over the
+   GFF parser. Has additional support for creating gene records, however.
+   Designed for cufflinks created GTF files at this time."
   [species version filename]
 
   (let [species-label (batch/dynamic-label species)
@@ -304,19 +305,13 @@
 ; []
 
 (defn create-node
-  [gff-entry])
-  ; [{node-properties} [labels]]
+  [gff-entry]
+  (-> [gff-entry []] ; Start node entry with no labels
+    util/wrap-urldecode
+    util/wrap-add-label-from-type
+    (util/wrap-add-label "ANNOTATION")))
 
-  ; url decode all GFF property values
-  ; need to add labels (should be middleware though, not in this fn)
-  ; add unique _odg_id field so we can track things much better (not in this fn, middleware)
+;(defn create-rels)
+;  [gff-entry])
 
-;  :nodes (into
-;           []
-;           (for [entry entries]
-;             [(reduce-kv #(assoc %1 %2 (if (string? %3)
-;                                         (java.net.URLDecoder/decode %3)
-;                                         %3
-;                         {}
-;                         (merge entry {:species species :version version})
-;              (labels [(:ANNOTATION batch/labels) (batch/dynamic-label (:type entry))])])
+; [(:PARENT_OF db/rels) parent-id (:id entry)]
