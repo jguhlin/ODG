@@ -1,7 +1,6 @@
 (ns odg.util
   (:require
     [odg.batch :as batch]
-    [odg.db :as db]
     [taoensso.timbre :as timbre]
     clojure.core.memoize))
 

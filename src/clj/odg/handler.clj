@@ -11,7 +11,6 @@
             [compojure.route :as route]
             [ring.util.response :as resp]
             [taoensso.timbre :as timbre]
-            [odg.query :as query]
             [odg.batch :as batch]
             [odg.db :as db]
             [odg.query :as query]

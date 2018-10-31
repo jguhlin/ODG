@@ -83,7 +83,7 @@
                         {:source-paths ["src/cljs" "src/cljc" "env/dev/cljs"]
                          :figwheel {:on-jsload "odg.core/mount-root"}
                          :compiler
-                          {:main "odg.dev"
+                          {:main "odg.core"
                            :asset-path "/js/out"
                            :output-to "target/cljsbuild/public/js/app.js"
                            :output-dir "target/cljsbuild/public/js/out"
@@ -120,9 +120,10 @@
                  [reagent-utils "0.3.1"]
                  [hiccup "1.0.5"]
                  [yogthos/config "1.1.1"]
+                 [aysylu/loom "1.0.2"]
                  [org.clojure/clojurescript "1.10.339"
                                             :scope "provided"]
-                 [metosin/reitit "0.2.4"]
+                 [metosin/reitit "0.2.5"]
                  [venantius/accountant "0.2.4"
                                        :exclusions [org.clojure/tools.reader]]
                  [ring/ring-json "0.4.0"]

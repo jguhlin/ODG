@@ -6,6 +6,7 @@
             [clojure.core.reducers :as r]
             [odg.util :as util]
             [odg.db :as db]
+            [loom.graph :as graph]
             [clojure.core.async :as async :refer [chan >! >!! <! <!! close! go-loop dropping-buffer thread]]
             [biotools.gff :as gff]
             [biotools.gtf :as gtf]
@@ -13,11 +14,6 @@
             [taoensso.timbre :as timbre]))
 
 (timbre/refer-timbre)
-
-; Need to make individual get-gene-node type fn's return a promise and be put into a fiber
-; so that nothing gets held up and no fiber is allowed to go for too long..
-
-; reminder for debugging
 
 (defn generic-entry
   [id type start end strand phase landmark species version note additional-data]
@@ -303,6 +299,9 @@
 
 ; Node entries are as such
 ; []
+
+; Create missing ID's
+
 
 (defn create-node
   [gff-entry]

@@ -251,22 +251,22 @@
                        ""
                        (str " MATCH (x:`" label "`)"))]
 
-  (db/query
-    (str
-      "START x=node:`" index-name "`({q}) "
-      match-string "
+   (db/query
+     (str
+       "START x=node:`" index-name "`({q}) "
+       match-string "
        RETURN x, x.id AS id, x.note AS note, x.gene AS gene, x.species AS species, x.version AS version ORDER BY x.id LIMIT 500")
-      {"q" (str "id:*" (batch/dbquote text) "*")}
-      (into [] (map (fn [x]
-                      {"id" (get x "id")
-                       "node" (.getId (get x "x"))
-                       "labels" (map (fn [y] (.name y)) (.getLabels (get x "x")))
-                       "note" (get x "note")
-                       "gene" (get x "gene")
-                       "species" (get x "species")
-                       "version" (get x "version")
-                       })
-                       results)))))
+     {"q" (str "id:*" (batch/dbquote text) "*")}
+     (into [] (map (fn [x]
+                     {"id" (get x "id")
+                      "node" (.getId (get x "x"))
+                      "labels" (map (fn [y] (.name y)) (.getLabels (get x "x")))
+                      "note" (get x "note")
+                      "gene" (get x "gene")
+                      "species" (get x "species")
+                      "version" (get x "version")})
+
+                   results)))))
 
 (defn third
   [x]
@@ -350,22 +350,22 @@
 
 (defn get-snp-effect
   [idx chr bp] ; idx not used until next database generation...
-(db/query
-    (str "START x=node:main(id={marker})
+  (db/query
+     (str "START x=node:main(id={marker})
             WHERE x:VARIANT
             RETURN x as node")
-    {"marker" (str chr ":" bp)}
-    (if (.hasNext (.iterator results))
-      (doall (map (fn [y]
-                    (db/with-tx db/*db*
-                      (let [node (get y "node")]
-                        {:quality (.getProperty node "quality" nil)
-                         :effect (.getProperty node "effect" nil)
-                         :effect-impact (.getProperty node "effect-impact" nil)
-                         :functional-class (.getProperty node "functional-class" nil)
-                         :amino-acid-change (.getProperty node "amino-acid-change" nil)
-                         :node node}))) results))
-      nil)))
+     {"marker" (str chr ":" bp)}
+     (if (.hasNext (.iterator results))
+       (doall (map (fn [y]
+                     (db/with-tx db/*db*
+                       (let [node (get y "node")]
+                         {:quality (.getProperty node "quality" nil)
+                          :effect (.getProperty node "effect" nil)
+                          :effect-impact (.getProperty node "effect-impact" nil)
+                          :functional-class (.getProperty node "functional-class" nil)
+                          :amino-acid-change (.getProperty node "amino-acid-change" nil)
+                          :node node}))) results))
+       nil)))
 
 (defn in-element?
   [idx chr bp]
@@ -1110,12 +1110,12 @@ RETURN
               high-af-genes ["AF > 0.2" (filter #(> (second %) 0.20) genes)]
 
               ; All genes
-              all-genes ["Any" genes]
-              ]
+              all-genes ["Any" genes]]
+
 
           (.write wrtr (clojure.string/join
                         "\t"
-                       ["AF" "Type" "ID" "Count"]))
+                        ["AF" "Type" "ID" "Count"]))
 
           (.write wrtr "\n")
           (doseq [[af genes-af-list] [high-af-genes middle-af-genes low-af-genes all-genes]]
@@ -1127,8 +1127,8 @@ RETURN
                   pathways (frequencies (map :pwy (flatten (map get-pathways nodes))))
                   expression (frequencies (map :name (flatten (map get-expression nodes))))
                   ECs (frequencies (map #(str (:ec %) " " (:definition %)) (flatten (map get-ECs nodes))))
-                  notes (frequencies (flatten (map get-annotation-note nodes)))
-                  ]
+                  notes (frequencies (flatten (map get-annotation-note nodes)))]
+
 
               (doseq [[term-type terms] [["GO" go-terms] ["GO-up" go-terms-higher] ["Pathways" pathways] ["Expression" expression] ["EC" ECs] ["AnnotationNotes" notes]]]
                 (doseq [[term total] terms]
@@ -1154,19 +1154,19 @@ RETURN
 
           (.write wrtr (clojure.string/join
                         "\t"
-                       ["Mt" "Gm"]))
+                        ["Mt" "Gm"]))
 
           (.write wrtr "\n")
           (doseq [gene genes]
             (let [
                   node (find-by-id idx gene)
                   blastp-hits (get-top-blastp-hits node)
-                  glycine-hits (get-top-blastp-hit-by-bitscore (filter #(= (:species %) "Glycine max") (flatten blastp-hits)))
-                  ]
+                  glycine-hits (get-top-blastp-hit-by-bitscore (filter #(= (:species %) "Glycine max") (flatten blastp-hits)))]
+
 
               (.write wrtr (clojure.string/join "\t" [gene glycine-hits]))
-              (.write wrtr "\n")
-              )))))))
+              (.write wrtr "\n"))))))))
+
 
 ; This is before EC's were all properly labelled as such
 ; Update in the future!
@@ -1188,9 +1188,9 @@ RETURN
                     (map
                       (fn [x]
                         [(get x "x.id")
-                        (get x "xref.id")
-                        (get x "xref.definition")])
-                        results))))]
+                         (get x "xref.id")
+                         (get x "xref.definition")])
+                      results))))]
 
       (println (take 5 results))
 
@@ -1224,15 +1224,15 @@ RETURN
 
           (.write wrtr (clojure.string/join
                         "\t"
-                       ["Gene" "Biological_Processs"]))
+                        ["Gene" "Biological_Processs"]))
           (.write wrtr "\n")
 
           (doseq [gene genes]
             (let [results
                   (get-biological-process index gene)]
               (.write wrtr (clojure.string/join "\t" [gene (clojure.string/join "|" results)]))
-              (.write wrtr "\n")
-              )))))))
+              (.write wrtr "\n"))))))))
+
 
 (defn biological-processes-all-genes
   [config options args]
@@ -1323,27 +1323,27 @@ RETURN
       (with-open [wrtr (clojure.java.io/writer (str output "_pfam_domains.tsv"))]
           (.write wrtr (clojure.string/join
                         "\t"
-                       ["Gene" "PFam_Domains"]))
+                        ["Gene" "PFam_Domains"]))
           (.write wrtr "\n")
 
           ; TODO:
           ; Return Gene ID if it's attached...
 
-            (let [q (str "MATCH (x:Protein)-[:HAS_ANALYSIS]-(pfam:PFAM)
+          (let [q (str "MATCH (x:Protein)-[:HAS_ANALYSIS]-(pfam:PFAM)
                           WHERE x:`" version-label"`
                           RETURN DISTINCT x.id, collect(pfam.definition) AS pfam ORDER BY x.id")
-                  results (db/query q {}
-                                    (into []
-                                          (doall
-                                            (map
-                                              (fn [x]
-                                                [(get x "x.id") (get x "pfam")])
-                                              results))))]
-              ; (println q)
-              (doseq [result results]
-                (.write wrtr (clojure.string/join "\t" [(first result) (clojure.string/join "|" (distinct (into [] (second result))))]))
-                (.write wrtr "\n")
-              ))))))
+                results (db/query q {}
+                                  (into []
+                                        (doall
+                                          (map
+                                            (fn [x]
+                                              [(get x "x.id") (get x "pfam")])
+                                            results))))]
+            ; (println q)
+            (doseq [result results]
+              (.write wrtr (clojure.string/join "\t" [(first result) (clojure.string/join "|" (distinct (into [] (second result))))]))
+              (.write wrtr "\n")))))))
+
 
 (defn annotate-genes-blast-hits
   [config options args]
