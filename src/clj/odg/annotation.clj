@@ -6,8 +6,13 @@
             [clojure.core.reducers :as r]
             [odg.util :as util]
             [odg.db :as db]
-            ;[loom.graph :as graph]
-            [clojure.core.async :as async :refer [chan >! >!! <! <!! close! go-loop dropping-buffer thread]]
+            [loom.graph :as graph]
+            [clojure.core.async
+                        :as async
+                        :refer
+                                [chan >! >!! <!
+                                 <!! close! go-loop
+                                 dropping-buffer thread]]
             [biotools.gff :as gff]
             [biotools.gtf :as gtf]
             [odg.batch :as batch]
@@ -314,3 +319,18 @@
 ;  [gff-entry])
 
 ; [(:PARENT_OF db/rels) parent-id (:id entry)]
+
+(defn get500 []
+  (with-open [rdr (clojure.java.io/reader "data/vvul/augustus.hints.gff3")]
+    (doall (take 500 (gff/parse-reader rdr)))))
+
+(defn convert-to-graph [genes]
+  (let [genes-map (into {} (map (juxt :id identity) genes))]
+    (graph/graph
+     (filter
+      identity
+      (map
+       (fn [x]
+         (when (:parent x)
+           [(get genes-map x) (get genes-map (:parent x))]))
+       genes)))))
