@@ -1,10 +1,27 @@
 (ns odg.util
   (:require
-    [odg.batch :as batch]
-    [taoensso.timbre :as timbre]
-    clojure.core.memoize))
+    [taoensso.timbre :as timbre])
+  (:import (org.neo4j.graphdb NotFoundException
+                              NotInTransactionException
+                              RelationshipType
+                              DynamicLabel
+                              Label)
+           (org.apache.lucene.queryparser.classic QueryParser)
+           (org.neo4j.unsafe.batchinsert BatchInserter
+                                         BatchInserters
+                                         BatchInserterIndexProvider
+                                         BatchInserterIndex)
+           (org.neo4j.index.lucene.unsafe.batchinsert LuceneBatchInserterIndexProvider)))
+
 
 (timbre/refer-timbre)
+
+(def dynamic-label
+  (memoize
+    (fn [x]
+      (when-not (or (nil? x) (clojure.string/blank? x))
+       (org.neo4j.graphdb.DynamicLabel/label x)))))
+
 
 (defn dabs
   [^Double x]
@@ -27,6 +44,12 @@
 (defn species-ver-root
   [species version]
   (str species version))
+
+(def convert-name
+  (memoize
+    (fn [& args]
+      (clojure.string/lower-case (clojure.string/replace (clojure.string/join " " args) #"\s|\." "_")))))
+
 
 ; Util fn's for middleware
 
@@ -74,15 +97,15 @@
 
 (defn wrap-add-label-from-type [[properties labels]]
   [properties
-   (into labels [(batch/dynamic-label (:type properties))])])
+   (into labels [(dynamic-label (:type properties))])])
 
 ; Returns a fn
 (defn wrap-add-label
   ([label]
-   (let [dyn-label (batch/dynamic-label label)]
+   (let [dyn-label (dynamic-label label)]
      (fn [node] (add-labels node dyn-label))))
   ([node label]
-   (add-labels node (batch/dynamic-label label))))
+   (add-labels node (dynamic-label label))))
 
 ; Returns a fn
 (defn wrap-add-labels

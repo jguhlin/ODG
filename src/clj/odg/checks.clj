@@ -1,6 +1,7 @@
 (ns odg.checks
-  (:require clojure.java.io
-          clojure.string
+  (:require
+          [clojure.java.io]
+          [clojure.string]
           [clojure.core.reducers :as r]
           [odg.util :as util]
           [odg.db :as db]

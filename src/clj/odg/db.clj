@@ -22,7 +22,6 @@
                                  Evaluation
                                  Evaluators)))
 
-
 (def ^:dynamic *db-connected* nil)
 (def ^:dynamic *db*)
 (def ^:dynamic *index-manager*)

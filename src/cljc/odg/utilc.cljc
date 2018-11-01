@@ -1,4 +1,4 @@
-(ns odg.util)
+(ns odg.utilc)
 
 (defn foo-cljc [x]
   "I don't do a whole lot."

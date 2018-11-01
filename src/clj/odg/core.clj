@@ -1,7 +1,7 @@
 (ns odg.core
   (:gen-class :main true)
-  (:require clojure.java.io
-            clojure.string
+  (:require [clojure.java.io]
+            [clojure.string]
             [clojure.core.reducers :as r]
             [cheshire.core :refer :all]
             [odg.assembly :as assembly]

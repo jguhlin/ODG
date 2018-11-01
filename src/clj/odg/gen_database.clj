@@ -2,7 +2,7 @@
   (:require clojure.java.io
             [taoensso.timbre :as timbre]
             [me.raynes.fs :as fs]
-            clojure.string
+            [clojure.string]
             [clojure.pprint :as pp]
             [odg.db :as db]
             [clojure.core.reducers :as r]

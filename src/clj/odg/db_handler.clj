@@ -1,10 +1,10 @@
 (ns odg.db-handler
   (:require
    [taoensso.timbre :as timbre]
-   [clojure.core.async :as async :refer [chan >! >!! <! <!! close! go-loop dropping-buffer thread]]
-   [clojure.core.reducers :as r]
-   [criterium.core :as cc])
-
+   [clojure.core.async
+    :as async
+    :refer [chan >! >!! <! <!! close! go-loop dropping-buffer thread]]
+   [clojure.core.reducers :as r])
   (:import
    (org.neo4j.graphdb NotFoundException
                       NotInTransactionException

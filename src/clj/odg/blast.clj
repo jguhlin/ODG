@@ -1,6 +1,6 @@
 (ns odg.blast
-  (:require clojure.java.io
-            clojure.string
+  (:require [clojure.java.io]
+            [clojure.string]
             [clojure.core.reducers :as r]
             [clojure.core.async :as async :refer [chan >! >!! <! <!! close!]]
             [odg.util :as util]

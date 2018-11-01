@@ -1,6 +1,6 @@
 (ns odg.variants
-  (:require clojure.java.io
-            clojure.string
+  (:require [clojure.java.io]
+            [clojure.string]
             [odg.db :as db]
             [odg.util :as util]
             [odg.batch :as batch]

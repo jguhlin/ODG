@@ -11,8 +11,8 @@
             [compojure.route :as route]
             [ring.util.response :as resp]
             [taoensso.timbre :as timbre]
-            [odg.batch :as batch]
             [odg.db :as db]
+            [odg.util :as util]
             [odg.query :as query]
             [hiccup.page :refer [include-js include-css html5]]
             [config.core :refer [env]]))
@@ -33,7 +33,7 @@
   (let [ids (clojure.string/split query #"\s+|,")]
     (map
       (juxt identity (fn [x] (query/get-biological-process
-                               (batch/convert-name species)
+                               (util/convert-name species)
                                x)))
       ids)))
 

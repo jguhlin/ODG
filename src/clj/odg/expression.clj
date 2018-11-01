@@ -1,8 +1,7 @@
 (ns odg.expression
-  (:require clojure.java.io
-            clojure.string
+  (:require [clojure.java.io]
+            [clojure.string]
             [clojure.core.reducers :as r]
-            criterium.core
             [biotools.fpkm-tracking :as fpkm-tracking]
             [odg.util :as util]
             [odg.db :as db]

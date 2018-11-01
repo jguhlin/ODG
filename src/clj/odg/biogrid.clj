@@ -1,6 +1,7 @@
 (ns odg.biogrid
-    (:require clojure.java.io
-            clojure.string
+    (:require
+            [clojure.java.io]
+            [clojure.string]
             [clojure.core.reducers :as r]
             [odg.batch :as batch]
             [odg.db :as db]

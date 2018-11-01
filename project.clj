@@ -1,6 +1,6 @@
 (defproject odg "2.0.alpha"
   :main odg.core
-  :aot [odg.core]
+  ; :aot [odg.core]
   :profiles {:dev  {:dependencies [[cider/piggieback "0.3.10"]
                                    [binaryage/devtools "0.9.10"]
                                    [ring/ring-mock "0.3.2"]

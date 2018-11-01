@@ -6,7 +6,7 @@
             [clojure.core.reducers :as r]
             [odg.util :as util]
             [odg.db :as db]
-            [loom.graph :as graph]
+            ;[loom.graph :as graph]
             [clojure.core.async :as async :refer [chan >! >!! <! <!! close! go-loop dropping-buffer thread]]
             [biotools.gff :as gff]
             [biotools.gtf :as gtf]

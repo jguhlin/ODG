@@ -1,6 +1,6 @@
 (ns odg.interproscan
   (:require
-    clojure.java.io
+    [clojure.java.io]
     [odg.db :as db]
     [odg.batch :as batch]
     [criterium.core :as criterium]

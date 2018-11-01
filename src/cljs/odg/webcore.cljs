@@ -1,4 +1,4 @@
-(ns odg.core
+(ns odg.webcore
     (:require [reagent.core :as reagent :refer [atom]]
               [reagent.session :as session]
               [reitit.frontend :as reitit]

@@ -1,6 +1,6 @@
 (ns odg.miscellaneous
-  (:require clojure.java.io
-            clojure.string
+  (:require [clojure.java.io]
+            [clojure.string]
             [odg.db :as db]
             [odg.batch :as batch]
             [odg.util :as util]))
