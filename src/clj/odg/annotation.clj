@@ -326,11 +326,12 @@
 
 (defn convert-to-graph [genes]
   (let [genes-map (into {} (map (juxt :id identity) genes))]
-    (graph/graph
+    (apply
+     graph/graph
      (filter
       identity
       (map
        (fn [x]
          (when (:parent x)
-           [(get genes-map x) (get genes-map (:parent x))]))
+           [x (get genes-map (:parent x))]))
        genes)))))
