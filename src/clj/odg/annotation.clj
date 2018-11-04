@@ -307,7 +307,6 @@
 
 ; Create missing ID's
 
-
 (defn create-node
   [gff-entry]
   (-> [gff-entry []] ; Start node entry with no labels
@@ -323,6 +322,11 @@
 (defn get500 []
   (with-open [rdr (clojure.java.io/reader "data/vvul/augustus.hints.gff3")]
     (doall (take 500 (gff/parse-reader rdr)))))
+
+; Shape for annotation entries should be such:
+; Gene -> mRNA -> exon
+;              -> intron is optional
+;              -> CDS is optional
 
 (defn convert-to-graph [genes]
   (let [genes-map (into {} (map (juxt :id identity) genes))]
