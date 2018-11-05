@@ -391,4 +391,4 @@
               ; We are in a transaction, so don't use db/create-relationship here!
               (.createRelationshipTo a b (:BLASTP_RECIPROCAL_TOP_HIT db/rels))))
 
-  (Thread/sleep 120000))
+  (Thread/sleep 60000))
