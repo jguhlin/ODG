@@ -159,8 +159,8 @@
                   WHERE (gene:gene OR gene:Annotation OR gene:Gene
                          or gene:annotation)
                   RETURN x.species, x.version, x.id,
-                    `x.odg-filename` AS filename, gene
-                  ORDER BY x.species, x.version, x.id, gene.start") {}
+                    gene.`odg-filename` AS filename, gene
+                  ORDER BY x.species, x.version, x.id, filename, gene.start") {}
    (info "Results obtained, now creating relationships...")
    (doseq [[[species version filename id] genes]
            (group-by
