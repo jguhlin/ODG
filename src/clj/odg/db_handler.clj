@@ -610,6 +610,7 @@
         identity
         (for [id (:query data)]
           (if-let [results (query-index idx id)]
+            (println results (:results-fn data) idx id)
             (let [results-fn (if (:results-fn data) (:results-fn data) identity)]
               [id
                ((:results-fn data)
