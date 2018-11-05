@@ -338,8 +338,6 @@
   (info "Mounting database in embedded (non-batch) mode")
   (db/connect (get-in config [:global :db_path]) (:memory options))
 
-  (info "Connecting gene neighbors")
-
   (db/query "CREATE INDEX ON :Gene(id)" {}
             (info "Creating node index on :Gene(id)"))
 
@@ -363,11 +361,20 @@
                     <-[:LOCATED_ON]-
                       (:LandmarkHash)
                     <-[:LOCATED_ON]-(gene)
-                  WHERE gene:gene OR gene:Annotation OR gene:Gene
-                  RETURN x.species, x.version, x.id, gene
-                  ORDER BY x.species, x.version, x.id, gene.start") {}
+                  WHERE (gene:gene OR gene:Annotation OR gene:Gene
+                         or gene:annotation)
+                  RETURN x.species, x.version, x.id,
+                    gene.`odg-filename` AS filename, gene
+                  ORDER BY x.species, x.version, x.id, filename, gene.start") {}
             (info "Creating relationships between gene neighbors...")
-            (doseq [[[species version id] genes] (group-by (fn [x] [(get x "x.species") (get x "x.version") (get x "x.id")]) results)]
+            (doseq [[[species version id filename] genes]
+                    (group-by
+                     (fn [x]
+                       [(get x "x.species")
+                        (get x "x.version")
+                        (get x "x.id")
+                        (get x "filename")])
+                     results)]
               (doseq [[a b] (partition 2 1 genes)]
                 ; We are in a transaction, so don't use db/create-relationship here!
                 (.createRelationshipTo (get a "gene") (get b "gene") (:NEXT_TO db/rels)))))
