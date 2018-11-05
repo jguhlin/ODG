@@ -273,7 +273,7 @@
           (if (= 0 (graph/in-degree node-graph id))
             [(generic-entry
                id
-               :gene
+               "gene"
                (apply min (map :start my-nodes))
                (apply max (map :end my-nodes))
                (some :strand my-nodes)
