@@ -1,5 +1,6 @@
 (ns odg.gen-database
   (:require clojure.java.io
+            clojure.java.shell
             [taoensso.timbre :as timbre]
             [me.raynes.fs :as fs]
             [clojure.string]

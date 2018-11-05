@@ -100,8 +100,8 @@
                 (str
                   (if (> (count files) 1) ; Handle multiple proteomes by concatenating all into one file and building the database from that.
                     (str "cat " (clojure.string/join " " rel-files) " > " all-file "\n"
-                         "makeblastdb -in " all-file " -out " db-name " -dbtype prot\n")
-                    (str "makeblastdb -in " single-file " -out " db-name " -dbtype prot\n")))))
+                         "diamond makedb -in " all-file " -out " db-name " -dbtype prot\n")
+                    (str "diamond makedb -in " single-file " -out " db-name " -dbtype prot\n")))))
 
             ; Create blastn db's
             (for [[name db-name files root] assembly-dbs]
@@ -109,11 +109,11 @@
                     single-file (str "../" root "/" (first files))
                     rel-files (map #(str "../" root "/" %) files)]
                 (str
-                  (if (> (count files) 1) ; Handle multiple proteomes by concatenating all into one file and building the database from that.
+                  (if (> (count files) 1) ; Handle multiple assemblies by concatenating all into one file and building the database from that.
                     (str "cat " (clojure.string/join " " rel-files) " > " all-file "\n"
                          "makeblastdb -in " all-file " -out " db-name " -dbtype nucl\n")
                     (str "makeblastdb -in " single-file " -out " db-name " -dbtype nucl\n")))))))))))
-
+              ; TODO: blastn can't be diamond, but we can use minimap2
 
 (defn create-blastn-scripts
   [global genomes]
@@ -182,8 +182,9 @@
                           (str tmp (second x) ".all-proteins.fa")
                           (str cwd "/" (nth x 3) "/" (first (nth x 2))))]
 
-         (str "blastp -query " fasta-file
+         (str "diamond blastp -query " fasta-file
               " -outfmt \"6 std qlen slen\""
+              " --more-sensitive "
               " -num_threads " threads
               " -soft_masking false"
               " -db " dbs (second y)

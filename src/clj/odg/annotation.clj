@@ -3,6 +3,7 @@
            (org.neo4j.unsafe.batchinsert BatchInserterIndex))
   (:require clojure.java.io
             clojure.string
+            clojure.java.shell
             [clojure.core.reducers :as r]
             [odg.util :as util]
             [odg.db :as db]
