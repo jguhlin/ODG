@@ -154,11 +154,11 @@
                     <-[:LOCATED_ON]-
                       (:LandmarkHash)
                     <-[:LOCATED_ON]-(gene)
-                  WHERE gene:gene OR gene:Annotation
-                  RETURN x.species, x.version, x.id, gene
+                  WHERE (gene:gene OR gene:Annotation OR gene:Gene or gene:annotation)
+                  RETURN x.species, x.version, x.id, `x.odg-filename` AS filename, gene
                   ORDER BY x.species, x.version, x.id, gene.start") {}
    (println "Results obtained, now creating relationships...")
-   (doseq [[[species version id] genes] (group-by (fn [x] [(get x "x.species") (get x "x.version") (get x "x.id")]) results)]
+   (doseq [[[species version filename id] genes] (group-by (fn [x] [(get x "x.species") (get x "x.version") (get x "filename") (get x "x.id")]) results)]
      (doseq [[a b] (partition 2 1 genes)]
        ; We are in a transaction, so don't use db/create-relationship here!
        (.createRelationshipTo (get a "gene") (get b "gene") (:NEXT_TO db/rels))))))
@@ -226,7 +226,8 @@
                      (fn [x]
                       (-> x
                         (util/wrap-add-labels [species-label version-label filename-label])
-                        (util/wrap-create-odg-id-from-properties species version filename)))
+                        (util/wrap-create-odg-id-from-properties species version filename)
+                        (util/wrap-add-property :odg-filename filename)))
                      (map create-node (gff/parse-reader rdr))))
             node-graph (convert-to-graph nodes)
             node-map (into {} (map (juxt :id identity) (map first nodes)))

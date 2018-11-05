@@ -170,6 +170,7 @@
    (filter
     identity
     (list
+     (get node-properties "odg-id")
      (get node-properties "id")
       ; (get node-properties "name") ; Interferes with OBO import...
      (get node-properties "pacid")
@@ -394,7 +395,6 @@
 ; TODO: Add support for exact-ids in other logic
 (defn handle-batch
   [^org.neo4j.unsafe.batchinsert.BatchInserter db index-manager mapping data]
-  (info "Handle batch entered... " (:comment data) " " (:indices data))
 
   (let [new-ids           (:new-ids data)
         index-targets     (:index-targets data)
@@ -430,8 +430,6 @@
                              index-targets)
                             created-nodes-map))]  ; Update nodes as necessary....
 
-    (debug "Inside main handle-batch loop")
-
     (doseq [[properties labels] (concat nodes-to-update (:nodes-update data))]
       (if-let [node-id (get nodes-map (get properties "id"))]
         (update-node
@@ -449,20 +447,19 @@
           (println (:indices data))
           (println (keys data))))); TODO: Add updated nodes updated properties to index with .updateOrAdd
 
-    (debug "HANDLE-BATCH 2")
     (doseq [^BatchInserterIndex idx (map (partial get-node-index index-manager) (:indices data))]
       (doseq [[val node-id] created-nodes-map]
+        (.add idx node-id {"odg-id" val})
         (.add idx node-id {"id" val})
         (when-let [alt-ids (get mapping val)]
           (doseq [alt-id alt-ids]
             (.add idx node-id {"id" alt-id}))))
       (.flush idx))
 
-    (debug "HANDLE-BATCH 3")
-
     ; TODO: Later, add additional fields to fulltext index, especially for GO terms and similar
     (doseq [^BatchInserterIndex idx (map (partial get-fulltext-node-index index-manager) (:fulltext-indices data))]
       (doseq [[val node-id] created-nodes-map]
+        (.add idx node-id {"odg-id" val})
         (.add idx node-id {"id" val}))
 
         ; .add if exists
@@ -473,8 +470,6 @@
         ; protein_definition_header
 
       (.flush idx))
-
-    (debug "HANDLE-BATCH 4")
 
     (doseq [[rel-type start end properties] (:rels data)]
       (when
