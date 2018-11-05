@@ -183,12 +183,11 @@
                           (str cwd "/" (nth x 3) "/" (first (nth x 2))))]
 
          (str "diamond blastp --query " fasta-file
-              " --outfmt \"6 std qlen slen\""
+              " --outfmt 6 qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore qlen slen"
               " --more-sensitive "
-              " --num_threads " threads
-              " --soft_masking false"
+              " --threads 16 "
+              " --masking 0 "
               " --db " dbs (second y)
-              " --culling_limit 100"
               " --evalue 0.1"
               " --out " (str cwd "/data/results/blastp/" (calc-blastp-result-name (first x) (first y))))))}))
 
