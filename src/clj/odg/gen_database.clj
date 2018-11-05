@@ -391,4 +391,6 @@
               ; We are in a transaction, so don't use db/create-relationship here!
               (.createRelationshipTo a b (:BLASTP_RECIPROCAL_TOP_HIT db/rels))))
 
-  (Thread/sleep 60000))
+ (info "Finished -- 60s cooldown before database shutdown")
+
+ (Thread/sleep 60000))
