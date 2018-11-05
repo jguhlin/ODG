@@ -167,9 +167,10 @@
             (fn [x]
               [(get x "x.species")
                (get x "x.version")
-               (get x "filename")
-               (get x "x.id")])
-            results)]
+               (get x "x.id")
+               (get x "filename")]
+              results))]
+     (println species version filename id)
      (doseq [[a b] (partition 2 1 genes)]
        ; We are in a transaction, so don't use db/create-relationship here!
        (.createRelationshipTo
