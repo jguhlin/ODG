@@ -610,27 +610,28 @@
         identity
         (for [id (:query data)]
           (if-let [results (query-index idx id)]
-            (println results (:results-fn data) idx id)
-            (let [results-fn (if (:results-fn data) (:results-fn data) identity)]
-              [id
-               ((:results-fn data)
-                (.getNodeProperties
-                  db
-                  (if (:filter-fn data)
-                    (some
-                      (fn [node-id]
-                        ((:filter-fn data)
-                         node-id
-                         (.getNodeProperties
-                          db
-                          node-id)
-                         (map
-                          (fn [x] (.name x))
-                          (.getNodeLabels
-                              db
-                              node-id))))
-                      results)
-                    (first results))))])))))))
+            (do
+              (println results (:results-fn data) idx id)
+              (let [results-fn (if (:results-fn data) (:results-fn data) identity)]
+                [id]
+                ((:results-fn data
+                  (.getNodeProperties
+                    db
+                    (if (:filter-fn data)
+                      (some
+                        (fn [node-id]
+                          ((:filter-fn data))
+                          node-id
+                          (.getNodeProperties
+                            db
+                            node-id
+                           (map)
+                           (fn [x] (.name x))
+                           (.getNodeLabels
+                               db
+                                node-id)))
+                        results)
+                      (first results)))))))))))))
 
 
 ; TODO: Potentially use async/thread here? Maybe in the future?
