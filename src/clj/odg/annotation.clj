@@ -158,7 +158,7 @@
                     <-[:LOCATED_ON]-(gene)
                   WHERE (gene:gene OR gene:Annotation OR gene:Gene
                          or gene:annotation)
-                  RETURN x.species, x.version, x.id,
+                  RETURN DISTINCT x.species, x.version, x.id,
                     gene.`odg-filename` AS filename, gene
                   ORDER BY x.species, x.version, x.id, filename, gene.start") {}
    (info "Results obtained, now creating relationships...")
