@@ -66,7 +66,7 @@
       label
       [label]))])
 
-(defn add-property [[properties labels] k v]
+(defn wrap-add-property [[properties labels] k v]
   [(assoc properties k v) labels])
 
 (defn preferred-capitalization [x]
