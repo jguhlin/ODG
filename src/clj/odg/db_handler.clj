@@ -598,8 +598,7 @@
                       (.getNodeProperties db node-id)
                       (map (fn [x] (.name x)) (.getNodeLabels db node-id)))) results))
                (first results))]))))))
-
-
+; TODO: Make clean
 (defn query-properties [data]
   (let [index-name (:index data)
         index-manager (:index-manager @state)
