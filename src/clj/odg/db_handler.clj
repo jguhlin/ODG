@@ -618,17 +618,17 @@
                   (if (:filter-fn data)
                     (some
                       (fn [node-id]
-                        ((:filter-fn data))
-                        node-id
-                        (.getNodeProperties
+                        ((:filter-fn data)
+                         node-id
+                         (.getNodeProperties
                           db
                           node-id)
-                        (map
-                          (fn [x] (.name x)
-                            (.getNodeLabels
+                         (map
+                          (fn [x] (.name x))
+                          (.getNodeLabels
                               db
-                              node-id)))
-                        results))
+                              node-id))))
+                      results)
                     (first results))))])))))))
 
 
