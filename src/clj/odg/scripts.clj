@@ -100,8 +100,8 @@
                 (str
                   (if (> (count files) 1) ; Handle multiple proteomes by concatenating all into one file and building the database from that.
                     (str "cat " (clojure.string/join " " rel-files) " > " all-file "\n"
-                         "diamond makedb -in " all-file " -out " db-name " -dbtype prot\n")
-                    (str "diamond makedb -in " single-file " -out " db-name " -dbtype prot\n")))))
+                         "diamond makedb --in " all-file " --db " db-name "\n")
+                    (str "diamond makedb --in " single-file " --db " db-name "\n")))))
 
             ; Create blastn db's
             (for [[name db-name files root] assembly-dbs]
@@ -182,15 +182,15 @@
                           (str tmp (second x) ".all-proteins.fa")
                           (str cwd "/" (nth x 3) "/" (first (nth x 2))))]
 
-         (str "diamond blastp -query " fasta-file
-              " -outfmt \"6 std qlen slen\""
+         (str "diamond blastp --query " fasta-file
+              " --outfmt \"6 std qlen slen\""
               " --more-sensitive "
-              " -num_threads " threads
-              " -soft_masking false"
-              " -db " dbs (second y)
-              " -culling_limit 100"
-              " -evalue 0.1"
-              " -out " (str cwd "/data/results/blastp/" (calc-blastp-result-name (first x) (first y))))))}))
+              " --num_threads " threads
+              " --soft_masking false"
+              " --db " dbs (second y)
+              " --culling_limit 100"
+              " --evalue 0.1"
+              " --out " (str cwd "/data/results/blastp/" (calc-blastp-result-name (first x) (first y))))))}))
 
 
 
