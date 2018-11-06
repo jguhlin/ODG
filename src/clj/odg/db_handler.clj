@@ -578,16 +578,12 @@
         idx (get-node-index index-manager index-name)
         ^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)]
     (.flush idx)
-    (debug "Query called, using " (:index data))
+    (debug "Query called, using" (:index data) data)
     (doall
       (filter
         identity
         (for [id (:query data)]
           (if-let [results (query-index idx id)]
-            ; :alt-id-fn REMOVED as it is no longer used. Left here because it could be very useful
-            ;(if (:alt-id-fn data) ; Remodel so it can support multiple outputs
-            ; Only being used in interproscan so far
-            ;(query-index idx ((:alt-id-fn data) id)
             [id
              (if (:filter-fn data)
                (first
@@ -598,7 +594,7 @@
                       (.getNodeProperties db node-id)
                       (map (fn [x] (.name x)) (.getNodeLabels db node-id)))) results))
                (first results))]))))))
-; TODO: Make clean
+
 (defn query-properties [data]
   (let [index-name (:index data)
         index-manager (:index-manager @state)
@@ -610,28 +606,27 @@
         (for [id (:query data)]
           (if-let [results (query-index idx id)]
             (do
-              (println results (:results-fn data) idx id)
+              ;(println results (:results-fn data) idx id)
               (let [results-fn (if (:results-fn data) (:results-fn data) identity)]
-                [id]
-                ((:results-fn data
+                [id
+                 ((:results-fn data)
                   (.getNodeProperties
-                    db
-                    (if (:filter-fn data)
-                      (some
-                        (fn [node-id]
-                          ((:filter-fn data))
-                          node-id
-                          (.getNodeProperties
-                            db
+                     db
+                     (if (:filter-fn data)
+                       (some
+                         (fn [node-id]
+                           ((:filter-fn data)
                             node-id
-                           (map)
-                           (fn [x] (.name x))
-                           (.getNodeLabels
-                               db
-                                node-id)))
-                        results)
-                      (first results)))))))))))))
-
+                            (.getNodeProperties
+                             db
+                             node-id)
+                            (map
+                             (fn [x] (.name x))
+                             (.getNodeLabels
+                                 db
+                                 node-id))))
+                         results)
+                       (first results))))]))))))))
 
 ; TODO: Potentially use async/thread here? Maybe in the future?
 (defn start-db-ch [] ; Single thread
@@ -912,6 +907,15 @@
   (close! db-ch)
   ; Wait for db handler go loop to conclude
   (println (<!! @db-go-loop)))
+
+(def batch-job-blank
+  {:indices ["main"]
+   :rels []
+   :nodes []
+   :nodes-update-or-create []
+   :species 'error'
+   :version 'error'})
+
 
  ; TODO: Create pre-processing environment
  ; Save intermediate files

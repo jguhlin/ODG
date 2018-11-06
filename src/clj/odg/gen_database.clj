@@ -91,7 +91,6 @@
     (info "Loading mapping file")
     (dbh/load-mapping "data/misc/mapping.tsv"))
 
-
   (info "Importing ontologies")
   (when-not (clojure.string/blank? (get-in config [:global :GO]))
     (ontologies/import-obo "GO" (get-in config [:global :GO])))
@@ -101,7 +100,6 @@
 
   (when-not (clojure.string/blank? (get-in config [:global :MI]))
     (ontologies/import-obo "MI" (get-in config [:global :MI])))
-
 
   ; To get this to work had to manually find/replace UniPathway: to UPa: in interproscan results files...
   ; Also in go.obo

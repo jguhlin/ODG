@@ -415,14 +415,14 @@
 
         bitscore        (if self?
                           (doall (into {} (for [[id score] self-blasts] {id score})))
-                          (into
+                          (into ;else
                             {}
                             (dbh/batch-get-data
                               {:index (batch/convert-name query-species query-version)
                                :action :query-properties
                                :query query-ids
                                :filter-fn (fn [id properties labels]
-                                            (if (some (hash-set "mRNA" "Protein" "Gene") labels)
+                                            (if (some (hash-set "mRNA" "Protein" "Gene" "gene" "protein" "Annotation" "annotation") labels)
                                               id
                                               nil))
                                :results-fn (fn [x] (get x "bitscore"))})))
@@ -434,21 +434,21 @@
                               :action :query
                               :query query-ids ; subject ids
                               :filter-fn (fn [id properties labels]
-                                           (if (some (hash-set "mRNA" "Protein" "Gene") labels)
+                                           (if (some (hash-set "mRNA" "Protein" "Gene" "gene" "annotation" "Annotation") labels)
                                              id
                                              nil))}))
 
 
         subject-nodes-ids (if self?
                             query-nodes-ids
-                            (into
+                            (into ;else
                               {}
                               (dbh/batch-get-data
                                 {:index (batch/convert-name subject-species subject-version)
                                  :action :query
                                  :query subject-ids
                                  :filter-fn (fn [id properties labels]
-                                              (if (some (hash-set "mRNA" "Protein" "Gene") labels)
+                                              (if (some (hash-set "mRNA" "Protein" "Gene" "gene" "Annotation" "annotation") labels)
                                                 id
                                                 nil))})))]
 
@@ -513,7 +513,7 @@
 
           (doseq [entries processed-batches]
             (debug "BLAST Results Import")
-            (debug (take 5 entries))
+            (debug (clojure.string/join " " (take 5 entries)))
             (dbh/submit-batch-job
               {:species query-species
                :version query-version

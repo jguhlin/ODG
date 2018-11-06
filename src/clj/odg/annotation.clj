@@ -334,7 +334,7 @@
                         (create-located-on-rels top-level-nodes))
                  :indices [(batch/convert-name species version)]}]
 
-        (info "Identified " (count loners) " in " filename)
+        (info "Identified" (count loners) "loners in" filename)
         job))))
 
 (defn import-gff-cli

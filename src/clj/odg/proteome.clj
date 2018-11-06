@@ -85,6 +85,7 @@
 
 
 ; TODO: Also link protein to the gene with a "HAS_PROTEIN" relationship... not to the mRNA (although that is good too, maybe best)
+
 ; Called import-fasta in case there are future proteomes in another format
 (defn import-fasta
   [species version filename]
@@ -105,15 +106,15 @@
 
         species-label (batch/dynamic-label species)
         version-label (batch/dynamic-label (str species " " version))
-        labels (partial into [species-label version-label])
+        filename-label (batch/dynamic-label (batch/convert-name filename))
+
+        labels (partial into [species-label version-label filename-label])
 
         create-node (partial node-definition labels species version)
 
         nodes (distinct
                 (doall
-                  (map create-node data)))]
-
-
+                  (map create-node proteins-not-existing)))]
 
     {:indices [(batch/convert-name species version)]
      :nodes-update-or-create nodes
