@@ -24,6 +24,7 @@
             [odg.config :as config]
             [odg.external-manager :as external-manager]
             [odg.query :as query]
+            [odg.job :as job]
             [odg.scripts :as scripts]
             [taoensso.timbre :as timbre]
             [clojure.math.combinatorics :as combo]
@@ -111,31 +112,26 @@
   (let [interproscan-final (atom {})
         do-the-merge       (fn [x y] (merge-with (comp distinct concat) x y))]
 
-   (doseq [[key genome] (:genomes config)]
+  ; Need to do a batch job to create species + speciesver nodes and root node
+  ; And connect them allows
+  ;(dbh/submit-batch-job
+  ; (-> job/blank-batch
+  ;  (assoc :nodes (concat))
 
-     (info "Beginning import of: " (:name genome))
+    (info "Creating root nodes")
+    (dbh/submit-batch-job
+      (-> job/blank-batch)
+      (assoc :nodes (job/create-root-species-nodes (:genomes config)))
+      (assoc :rels  (job/create-root-species-rels (:genomes config)))
+      (assoc :species "Root Import")
+      (assoc :version "Root Import"))
 
+    (doseq [[abbrev genome] (:genomes config)]
+     (info "Beginning import of: " (:name genome) (:version genome) "aka" (:abbrev genome))
      (dbh/submit-batch-job
-       ; Update or create, in case we are working on an existing database. Not recommended!
-       {:nodes-updates-or-create
-        [; Create the Root node
-           [{:id "Root"} [(batch/dynamic-label "ROOT")] []]
-
-         ; Create the species node
-           [{:id (:name genome)}
-            [(batch/dynamic-label "Genome") (batch/dynamic-label "Species")]
-            [
-             [(:PARENT_OF db/rels) "Root" (:name genome)]]]
-
-
-         ; Create the species version node
-           [{:id (str (:name genome) (:version genome))}
-            [(batch/dynamic-label "Genome") (batch/dynamic-label "Species") (batch/dynamic-label "SpeciesVersion")]
-            [
-             [(:PARENT_OF db/rels) (:name genome) (str (:name genome) (:version genome))]]]]
-
-        :indices ["main"]})
-
+      (-> job/blank-batch
+       (assoc :species (:name genome) :version (:version genome))
+       (assoc :indices ["main" (batch/convert-name species) (batch/convert-name species version)])))
 
      (let [assembly (apply
                       merge-with

@@ -65,10 +65,9 @@
 
 (defn create-node
   [^org.neo4j.unsafe.batchinsert.BatchInserter db-handler
-   ^java.util.Map node-properties
-   node-labels]
+   node]
   (try
-    (.createNode db-handler node-properties node-labels)
+    (.createNode db-handler (:properties node) (:labels node))
     (catch Exception e
       (println "Caught exception: " (.getMessage e))
       (println e)
@@ -232,10 +231,9 @@
 
 (defn batch-create-node
   [^org.neo4j.unsafe.batchinsert.BatchInserter db-handler
-   ^java.util.Map node-properties
-   node-labels]
+   node]
   (try
-    [(get-ids node-properties) (.createNode db-handler node-properties node-labels)]
+    [(get-ids node-properties) (.createNode db-handler (:properties node) (:labels node))]
     (catch Exception e
       (println "Caught exception: " (.getMessage e))
       (println e)
@@ -652,9 +650,9 @@
                          (handle-batch db index-manager mapping batch-package)
                          (debug "Finished handle-batch")
                          :completed))
-              :node (let [[^java.util.Map node-properties node-labels] (rest message)
+              :node (let [[^java.util.Map node] (rest message)
                           ^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)]
-                      (.createNode db node-properties node-labels))
+                      (.createNode db (:properties node) (:labels node)))
               :query-properties (apply query-properties (rest message))
               :query (apply query (rest message))
               :rel (let [[start end rel-type rel-properties] (rest message)]
@@ -908,16 +906,7 @@
   ; Wait for db handler go loop to conclude
   (println (<!! @db-go-loop)))
 
-(def batch-job-blank
-  {:indices ["main"]
-   :rels []
-   :nodes []
-   :nodes-update-or-create []
-   :species 'error'
-   :version 'error'})
-
-
- ; TODO: Create pre-processing environment
+; TODO: Create pre-processing environment
  ; Save intermediate files
 ;
 ; {:nodes = nodes to add
