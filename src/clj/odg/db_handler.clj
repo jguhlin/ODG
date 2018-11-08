@@ -233,7 +233,7 @@
   [^org.neo4j.unsafe.batchinsert.BatchInserter db-handler
    node]
   (try
-    [(get-ids node-properties) (.createNode db-handler (:properties node) (:labels node))]
+    [(get-ids (:properties node) (.createNode db-handler (:properties node) (:labels node)))]
     (catch Exception e
       (println "Caught exception: " (.getMessage e))
       (println e)

@@ -49,7 +49,6 @@
 ;  Enzyme
 ;  InterProScan Results
 
-
 ;Todo:
 ;  OBO Associations
 ;  Blastn - Anchors
@@ -131,7 +130,7 @@
      (dbh/submit-batch-job
       (-> job/blank-batch
        (assoc :species (:name genome) :version (:version genome))
-       (assoc :indices ["main" (batch/convert-name species) (batch/convert-name species version)])))
+       (assoc :indices ["main" (batch/convert-name (:name genome)) (batch/convert-name (:name genome) (:version genome))])))
 
      (let [assembly (apply
                       merge-with

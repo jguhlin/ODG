@@ -7,6 +7,7 @@
             [taoensso.timbre :as timbre]
             [clojure.core.reducers :as r]
             [biotools.gff :as gff]
+            odg.job
             [odg.db :as db])
   (:import (org.neo4j.unsafe.batchinsert BatchInserterIndex)))
 
@@ -27,72 +28,72 @@
 ; Generates a message to the db-handler actor/server now, instead of sending off jobs itself
 ; Should send a single package of things to do to the db-handler...
 
+(defn landmark-odg-id [landmark species version]
+  (str "landmark-id-" landmark "-" species "-" version))
+
+(defn landmarkhash-odg-id [landmark species version mark]
+  (str "landmarkhash-id-" landmark ":" mark "-" species "-" version))
+
 ; Test command
 (defn import-fasta
   "FASTA sequences are used here to create a pseudomolecule backbone to attach genes and other elements to; the assembly gives coordinates to elements"
-  [species version filename]
 
-  (info "Importing assembly for:" species version filename)
+   [species version filename]
 
-  (let [; ^BatchInserterIndex index (batch/get-node-index species version)
-       ; idx-query (util/index-queryer index)
-        species-label (batch/dynamic-label species)
-        version-label (batch/dynamic-label (str species " " version))
-        labels (partial into [species-label version-label])
+   (info "Importing assembly for:" species version filename)
 
-       ; FINISH!
-        species-ver-root (util/species-ver-root species version)
+   (let [species-label (batch/dynamic-label species)
+         version-label (batch/dynamic-label (str species " " version))
+         labels (partial into [species-label version-label])
 
-       ; Makes a list of all the nodes and the data they need to insert
-       ; TODO: Automatically obtain species, version, and labels
-       ; Test info - (make-nodes "s" "v" ["chr1" 10000])
-        compute-nodes (fn compute-node
+         compute-nodes (fn compute-nodes
                          [landmark length]
                          (concat
-                           [[{:id landmark
-                              :length length
-                              :species species
-                              :version version}
-                             (labels [(:LANDMARK batch/labels)])]]
-                           (for
-                             [mark (range 0 (* 100000 (+ 2 (int (/ length 100000)))) 100000)]
-                             [{:id (clojure.string/lower-case (str landmark ":" mark))}
-                              (labels [(:LANDMARK_HASH batch/labels)])])))
-        compute-rels (fn compute-rels
-                       [landmark length]
-                       (let [marks (range 0 (* 100000 (+ 2 (int (/ length 100000)))) 100000)
-                             lc-landmark (clojure.string/lower-case landmark)] ; Only convert to lowercase once
+                          [(job/->Node
+                            {:id (clojure.string/lower-case landmark)
+                             :length length
+                             :species species
+                             :version version}
+                            (labels (:LANDMARK batch/labels)))]
+                          (for [mark (range 0 (* 100000 (+ 2 (int (/ length 100000)))) 100000)]
+                            (job/->Node {:id (clojure.string/lower-case (str landmark ":" mark))}
+                                        (labels [(:LANDMARK_HASH batch/labels)])))))
+         compute-rels (fn compute-rels
+                        [landmark length
+                         (let [marks (range 0 (* 100000 (+ 2 (int (/ length 100000)))) 100000)
+                               lc-landmark (clojure.string/lower-case landmark)] ; Only convert to lowercase once
+                           (concat
+                             [[(:BELONGS_TO db/rels) lc-landmark species-ver-root]
+                              (for [mark marks]
+                                [(:LOCATED_ON db/rels) (clojure.string/lower-case (str landmark ":" mark)) landmark {}])
+                              (for [[f s] (partition 2 1 marks)]
+                                [(:NEXT_TO db/rels)(str lc-landmark ":" f) (str lc-landmark ":" s) {}])]))])
 
-                         (concat
-                           [[(:BELONGS_TO db/rels) lc-landmark species-ver-root]]
-                           (for
-                             [mark marks]
-                             [(:LOCATED_ON db/rels) (clojure.string/lower-case (str landmark ":" mark)) landmark {}])
-                           (for [[f s] (partition 2 1 marks)]
-                             [(:NEXT_TO db/rels)(str lc-landmark ":" f) (str lc-landmark ":" s) {}]))))
+         create-landmark-nodes (fn [landmarks]
+                                 (for [[landmark length] landmarks]
+                                   [(odg.job/->Node
+                                     {:id (clojure.string/lower-case landmark)
+                                      :length length
+                                      :species species
+                                      :version version}
+                                     (labels [(:LANDMARK batch/labels)]))]))
 
-        combinef (fn combinef
-                   ([] [])
-                   ([x y] (concat x y)))
+         landmarks (get-landmarks filename)
+         landmark-nodes (create-landmark-nodes landmarks)
+         nodes (r/fold combinef (r/map compute-nodes landmarks))
+         rels (r/fold combinef (r/map compute-rels landmarks))]
 
-        landmarks (get-landmarks filename)
-        nodes (r/fold combinef (r/map compute-nodes landmarks))
-        rels (r/fold combinef (r/map compute-rels landmarks))]
+     {:species species
+      :version version
+      :nodes nodes
+      :rels rels
+      :indices [(batch/convert-name species version)]}))
 
-        ; Do not worry about the index anymore, the db handler will handle that (and pass it off appropriately)
-
-
-    {:species species
-     :version version
-     :nodes nodes
-     :rels rels
-     :indices [(batch/convert-name species version)]}))
-
-
-
-;(defn import-fasta-cli
-;  "Import assembly - helper fn for when run from the command-line (opposed to entire database generation)"
-;  [config opts args]
-;
-;  (batch/connect (get-in config [:global :db_path]) (:memory opts))
-;  (import-fasta (:species opts) (:version opts) (first args)))
+(defn create-landmark-nodes [landmarks]
+  (for [[landmark length] landmarks]
+    [(odg.job/->Node
+      {:id (clojure.string/lower-case landmark)
+       :length length
+       :species species
+       :version version}
+      (labels [(:LANDMARK batch/labels)]))]))
