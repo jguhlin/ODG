@@ -4,6 +4,7 @@
   (:require clojure.java.io
             clojure.string
             clojure.java.shell
+            odg.job
             [clojure.core.reducers :as r]
             [odg.util :as util]
             [odg.db :as db]
@@ -328,10 +329,12 @@
                               (get node-map id))
             job {:species species
                  :version version
-                 :nodes nodes
-                 :rels (concat
-                        (create-parent-of-rels nodes)
-                        (create-located-on-rels top-level-nodes))
+                 :nodes (map (fn [x] (apply odg.job/->Node x)) nodes)
+                 :rels (map
+                        (fn [x] (apply odg.job/->Rel x)
+                          (concat
+                            (create-parent-of-rels nodes)
+                            (create-located-on-rels top-level-nodes))))
                  :indices [(batch/convert-name species version)]}]
 
         (info "Identified" (count loners) "loners in" filename)

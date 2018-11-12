@@ -4,6 +4,7 @@
             [odg.db :as db]
             [taoensso.timbre :as timbre]
             [odg.batch :as batch]
+            [odg.job :as job]
             [odg.db-handler :as dbh]))
 
 (timbre/refer-timbre)
@@ -83,68 +84,52 @@
            [(keyword k) v])))
      (labels [(:PROTEIN batch/labels)])]))
 
-
-; TODO: Also link protein to the gene with a "HAS_PROTEIN" relationship... not to the mRNA (although that is good too, maybe best)
+; TODO: Now only supports imports for brand-new databases, not existing;
+; Although.... maybe it still works with nodes-update-or-create....
+; TODO: Also link protein to the gene with a "HAS_PROTEIN" relationship...
+; not to the mRNA (although that is good too, maybe best)
 
 ; Called import-fasta in case there are future proteomes in another format
 (defn import-fasta
-  [species version filename]
-  (info "Importing proteome for" species version filename)
-  (let [data (get-from-file filename)
-        proteins-existing (into
-                            {}
-                            (dbh/batch-get-data
-                              {:index (batch/convert-name species version)
-                               :action :query
-                               :query (keys data)}))
+  ([species version filename] (import-fasta
+                                species
+                                version
+                                filename
+                                job/blank-batch))
+  ([species version filename job]
+   (info "Importing proteome for" species version filename)
+   (let [data (get-from-file filename)
+         anno-ids (into {} (map (juxt odg.job/propid odg.job/id) (:nodes job)))
 
-        existing-set (apply hash-set (keys proteins-existing))
+         existing-set (apply hash-set (keys anno-ids))
 
-        proteins-not-existing (remove (fn [x]
-                                        (existing-set (key x)))
-                                      data)
+         ; Put here since we are going to update in place
+         job-nodes (into {} (map (juxt odg.job/id identity) (:nodes annotation)))
 
-        species-label (batch/dynamic-label species)
-        version-label (batch/dynamic-label (str species " " version))
-        filename-label (batch/dynamic-label (batch/convert-name filename))
+         proteins-not-existing (remove (fn [x]
+                                         (existing-set (key x)))
+                                       data)
 
-        labels (partial into [species-label version-label filename-label])
+         species-label (batch/dynamic-label species)
+         version-label (batch/dynamic-label (str species " " version))
+         filename-label (batch/dynamic-label (batch/convert-name filename))
 
-        create-node (partial node-definition labels species version)
+         labels (partial into [species-label version-label filename-label])
 
-        nodes (distinct
-                (doall
-                  (map create-node proteins-not-existing)))]
+         create-node (partial node-definition labels species version)
 
-    {:indices [(batch/convert-name species version)]
-     :nodes-update-or-create nodes
-     :rels (distinct
-             (doall
-               (map
-                 (fn [x]
-                   [(:HAS_PROTEIN db/rels)
-                    (vec (dbh/get-ids x))
-                    (:id x)
-                    {}])
-                 nodes)))}))
+         nodes (distinct
+                 (doall
+                   (map create-node proteins-not-existing)))]
 
-;     :rels (distinct
-;             (doall
-;               (map
-;                 (fn [x]
-;                   [(:HAS_PROTEIN db/rels)
-;                    (if-let [x
-;                             (get
-;                               (into
-;                                 {}
-;                                 (get-attributes-if-any
-;                                   (:protein_definition_header
-;                                     (val x))))
-;                               "gene-id")]
-;                        x
-;                      ;else
-;                      (get-gene-id (key x)))
-;                    (key x)
-;                    {}])
-;               data)))
-     ;:exact-ids true
+     {:indices [(batch/convert-name species version)]
+      :nodes-update-or-create nodes
+      :rels (distinct
+              (doall
+                (map
+                  (fn [x]
+                    [(:HAS_PROTEIN db/rels)
+                     (vec (dbh/get-ids x))
+                     (:id x)
+                     {}])
+                  nodes)))})))

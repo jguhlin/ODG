@@ -3,10 +3,12 @@
             [odg.db :as db]))
 
 (defprotocol OdgID
+ (propid [_] (:id properties))
  (id [_] (:odg-id properties)))
 
 (defrecord Node [properties labels]
  OdgID
+ (propid [_] (:id properties))
  (id [_] (:odg-id properties)))
 
 (defn node [properties & labels]
@@ -14,6 +16,7 @@
 
 (defrecord Rel [type from to properties]
   OdgID
+  (propid [_] (:id properties))
   (id [_] (:odg-id properties)))
 
 (defn rel-odg-id [type from to]

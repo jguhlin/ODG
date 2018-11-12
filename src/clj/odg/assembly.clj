@@ -7,13 +7,49 @@
             [taoensso.timbre :as timbre]
             [clojure.core.reducers :as r]
             [biotools.gff :as gff]
-            odg.job
+            [odg.job :as job]
             [odg.db :as db])
   (:import (org.neo4j.unsafe.batchinsert BatchInserterIndex)))
 
 (set! *warn-on-reflection* true)
 
 (timbre/refer-timbre)
+
+(defn compute-nodes-fn
+  [species version labels]
+  (fn compute-nodes
+    [[landmark length]]
+    (concat
+      [(job/->Node
+          {:id (clojure.string/lower-case landmark)
+           :length length
+           :species species
+           :version version}
+          (labels [(:LANDMARK batch/labels)]))]
+      (for [mark (range 0 (* 100000 (+ 2 (int (/ length 100000)))) 100000)]
+        (job/->Node {:id (clojure.string/lower-case (str landmark ":" mark))}
+          (labels [(:LANDMARK_HASH batch/labels)]))))))
+
+(defn compute-rels-fn
+  [species version]
+  (fn compute-rels
+    [[landmark length]]
+    (let [marks (range 0 (* 100000 (+ 2 (int (/ length 100000)))) 100000)
+          lc-landmark (clojure.string/lower-case landmark)] ; Only convert to lowercase once
+       (concat
+         [(job/rel (:BELONGS_TO db/rels)
+                   lc-landmark
+                   (job/species-version-odg-id species version))]
+         (for [mark marks]
+          (job/rel
+           (:LOCATED_ON db/rels)
+           (clojure.string/lower-case (str landmark ":" mark))
+           landmark))
+         (for [[f s] (partition 2 1 marks)]
+           (job/rel
+            (:NEXT_TO db/rels)
+            (str lc-landmark ":" f)
+            (str lc-landmark ":" s)))))))
 
 (defn get-landmarks
   [filename]
@@ -46,42 +82,12 @@
          version-label (batch/dynamic-label (str species " " version))
          labels (partial into [species-label version-label])
 
-         compute-nodes (fn compute-nodes
-                         [landmark length]
-                         (concat
-                          [(job/->Node
-                            {:id (clojure.string/lower-case landmark)
-                             :length length
-                             :species species
-                             :version version}
-                            (labels (:LANDMARK batch/labels)))]
-                          (for [mark (range 0 (* 100000 (+ 2 (int (/ length 100000)))) 100000)]
-                            (job/->Node {:id (clojure.string/lower-case (str landmark ":" mark))}
-                                        (labels [(:LANDMARK_HASH batch/labels)])))))
-         compute-rels (fn compute-rels
-                        [landmark length
-                         (let [marks (range 0 (* 100000 (+ 2 (int (/ length 100000)))) 100000)
-                               lc-landmark (clojure.string/lower-case landmark)] ; Only convert to lowercase once
-                           (concat
-                             [[(:BELONGS_TO db/rels) lc-landmark species-ver-root]
-                              (for [mark marks]
-                                [(:LOCATED_ON db/rels) (clojure.string/lower-case (str landmark ":" mark)) landmark {}])
-                              (for [[f s] (partition 2 1 marks)]
-                                [(:NEXT_TO db/rels)(str lc-landmark ":" f) (str lc-landmark ":" s) {}])]))])
-
-         create-landmark-nodes (fn [landmarks]
-                                 (for [[landmark length] landmarks]
-                                   [(odg.job/->Node
-                                     {:id (clojure.string/lower-case landmark)
-                                      :length length
-                                      :species species
-                                      :version version}
-                                     (labels [(:LANDMARK batch/labels)]))]))
+         compute-nodes (compute-nodes-fn species version labels)
+         compute-rels (compute-rels-fn species version)
 
          landmarks (get-landmarks filename)
-         landmark-nodes (create-landmark-nodes landmarks)
-         nodes (r/fold combinef (r/map compute-nodes landmarks))
-         rels (r/fold combinef (r/map compute-rels landmarks))]
+         nodes (mapcat compute-nodes landmarks)
+         rels (mapcat compute-rels landmarks)]
 
      {:species species
       :version version
@@ -89,11 +95,11 @@
       :rels rels
       :indices [(batch/convert-name species version)]}))
 
-(defn create-landmark-nodes [landmarks]
-  (for [[landmark length] landmarks]
-    [(odg.job/->Node
-      {:id (clojure.string/lower-case landmark)
-       :length length
-       :species species
-       :version version}
-      (labels [(:LANDMARK batch/labels)]))]))
+;(defn create-landmark-nodes [landmarks species version]
+;  (for [[landmark length] landmarks]
+;    [(odg.job/->Node
+;      {:id (clojure.string/lower-case landmark)
+;       :length length
+;       :species species
+;       :version version
+;      (labels [(:LANDMARK batch/labels)])}))
