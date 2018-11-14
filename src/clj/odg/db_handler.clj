@@ -1,5 +1,6 @@
 (ns odg.db-handler
   (:require
+   clojure.pprint
    [taoensso.timbre :as timbre]
    [clojure.core.async
     :as async
@@ -65,9 +66,9 @@
 
 (defn create-node
   [^org.neo4j.unsafe.batchinsert.BatchInserter db-handler
-   node]
+   properties labels]
   (try
-    (.createNode db-handler (:properties node) (:labels node))
+    (.createNode db-handler properties labels)
     (catch Exception e
       (println "Caught exception: " (.getMessage e))
       (println e)
@@ -95,7 +96,6 @@
 ; Get node-index
 (defn get-node-index
   [^LuceneBatchInserterIndexProvider index-manager indexname]
-  (debug "get-node-index " indexname index-manager)
   (let [idx (.nodeIndex index-manager indexname {"type" "exact" "to_lower_case" "true"})]
       (.flush idx)
         ; (.setCacheCapacity idx "id" 500)
@@ -231,9 +231,12 @@
 
 (defn batch-create-node
   [^org.neo4j.unsafe.batchinsert.BatchInserter db-handler
-   node]
+   properties
+   labels]
+
   (try
-    [(get-ids (:properties node) (.createNode db-handler (:properties node) (:labels node)))]
+    [(get-ids properties)
+     (.createNode db-handler properties labels)]
     (catch Exception e
       (println "Caught exception: " (.getMessage e))
       (println e)
@@ -329,7 +332,7 @@
     (into {}
           (doall
            (for [node (filter query nodes)
-                 id (get-ids (first node))
+                 id   (get-ids (first node))
                  :let [node-id (query node)]]
              {id node-id})))))
 
@@ -355,14 +358,14 @@
 (defn hb-create-nodes-
   [db nodes]
   (into
-   {}
-   (doall
-    (for [[ids node-id]
-          (map (fn [[x y]]
-                 (batch-create-node db x y))
-               nodes)
-          id ids]
-      {id node-id}))))
+    {}
+    (doall
+      (for [[ids node-id]
+            (map (fn [[x y]]
+                   (batch-create-node db x y))
+                 nodes)
+            id ids]
+        {id node-id}))))
 
 ; Fn to update nodes
 (defn update-node
@@ -398,12 +401,14 @@
         index-targets     (:index-targets data)
         exact-ids         (:exact-ids data)
 
+        idx (get-node-index index-manager (first (:indices data)))
+
         ; Identify which nodes exist for :nodes-update-or-create
         [nodes-to-update nodes-to-create existing-nodes-map]
         (hb-split-existing-
-         (get-node-index index-manager (first (:indices data)))
-         (:nodes-update-or-create data)
-         exact-ids)
+          idx
+          (:nodes-update-or-create data)
+          exact-ids)
 
         ; Add nodes-update here
         created-nodes-map (hb-create-nodes-
@@ -421,10 +426,10 @@
                            (merge ; Order is important here, the nodes just created should always be added last (in case they weren't part of update-or-create)
                             existing-nodes-map
                             (hb-get-node-ids-
-                             (get-node-index index-manager (first (:indices data)))
+                             idx
                              (:nodes-update data))
                             (hb-query-ids-
-                             (get-node-index index-manager (first (:indices data)))
+                             idx
                              index-targets)
                             created-nodes-map))]  ; Update nodes as necessary....
 
@@ -436,7 +441,7 @@
          properties
          labels)
         (do
-          (println "ERROR:" (get properties "id") " not found! Update nodes")
+          (println "ERROR:" (get properties "id") "not found! Update nodes")
           (println (:comment data))
           (println (count (:nodes-update data)))
           (println (count nodes-map))
@@ -447,7 +452,7 @@
 
     (doseq [^BatchInserterIndex idx (map (partial get-node-index index-manager) (:indices data))]
       (doseq [[val node-id] created-nodes-map]
-        (.add idx node-id {"odg-id" val})
+        (.add idx node-id {"id" val})
         (.add idx node-id {"id" val})
         (when-let [alt-ids (get mapping val)]
           (doseq [alt-id alt-ids]
@@ -480,35 +485,41 @@
        (println start)
        (println end)
        (println properties)
-       (System/exit 99)) (let [start-node (cond
-                                            (integer? start) start
-                                            (string? start) (get nodes-map start)
-                                            (vector? start) (some
-                                                             (fn [x]
-                                                               (get nodes-map x))
-                                                             start))
+       (System/exit 99))
 
-                               end-node (cond
-                                          (integer? end) end
-                                          (string? end) (get nodes-map end)
-                                          (vector? end) (some
-                                                         (fn [x]
-                                                           (get nodes-map x))
-                                                         end))]
+      (let [start-node (cond
+                          (integer? start) start
+                          (string? start) (get nodes-map start)
+                          (vector? start) (some
+                                            (fn [x]
+                                             (get nodes-map x))
+                                           start))
 
-                           (when (string? end-node)
-                             (println "Still a string!")
-                             (println end-node)
-                             (println (get nodes-map end-node))
-                             (System/exit 99))
+             end-node (cond
+                        (integer? end) end
+                        (string? end) (get nodes-map end)
+                        (vector? end) (some
+                                        (fn [x]
+                                          (get nodes-map x))
+                                        end))]
 
-                           (if (and start-node end-node)
-                             (create-rel ; if conditions above are true
-                              db
-                              start-node
-                              end-node
-                              rel-type
-                              properties)))))
+         (when (string? end-node)
+           (println "end-node Still a string!")
+           (println start-node end-node)
+           (println (type start-node))
+           (println (type end-node))
+           (clojure.pprint/pprint nodes-map)
+           (println (get nodes-map end-node))
+           (System/exit 99))
+
+         (if (and start-node end-node)
+          (do
+           (create-rel ; if conditions above are true
+             db
+             start-node
+             end-node
+             rel-type
+             properties))))))
 ;        (do ; if conditions above are false
 ;          (if (and (string? start) (not (get nodes-map start)))
 ;           (println start "not found! Start of rel"))
@@ -521,7 +532,6 @@
 ;                     "nodes-map:" (count nodes-map)
 ;                     "nodes-map:" (class nodes-map)
 ;                     )))))
-  (debug "HANDLE-BATCH 5")
   :finished)
 
 ; Re-implementing batchdb-server as async channels
@@ -570,13 +580,11 @@
 (def rw-ch (chan 1000))
 
 (defn query [data]
-  (debug "In query....")
   (let [index-name (:index data)
         index-manager (:index-manager @state)
         idx (get-node-index index-manager index-name)
         ^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)]
     (.flush idx)
-    (debug "Query called, using" (:index data) data)
     (doall
       (filter
         identity
@@ -632,7 +640,6 @@
     (loop []
       (when-let [packet (<!! db-ch)]
         (let [[message out] (if (vector? packet) packet [:err :err])]
-          (debug "In DBCH" (first message) out)
           (>!! out
             (case (first message)
               :connect (apply -db-connect (rest message))
@@ -646,9 +653,7 @@
                            index-manager (:index-manager @state)
                            mapping       (:mapping @state)]
                        (do
-                         (debug "Starting handle-batch")
                          (handle-batch db index-manager mapping batch-package)
-                         (debug "Finished handle-batch")
                          :completed))
               :node (let [[^java.util.Map node] (rest message)
                           ^org.neo4j.unsafe.batchinsert.BatchInserter db (:db @state)]
@@ -676,8 +681,6 @@
                           (swap! state merge {:db nil})
                           :shutdown)
               :error))
-          (debug "Finished " (first message))
-          (debug "DBCH Loop complete, restarting...")
           (recur))))))
 
 
@@ -697,9 +700,7 @@
   (doseq [_ (range 1)] ; 10 Read & Write threads
     (go-loop []
       (when-let [packet (<! rw-ch)]
-        (println "In RW...")
         (>! db-ch packet)
-        (println "RW submitted.... restarting loop")
         (recur)))))
 
 (def db-go-loop (atom nil))
@@ -715,7 +716,7 @@
     (>!! rw-ch [[:connect db_path memory] out])
     (println (<!! out))
     (close! out))
-  (debug "Connected to database!"))
+  (debug "Connected to database"))
 
      ; Wait until connection is complete before continuing
 
@@ -907,7 +908,7 @@
   (println (<!! @db-go-loop)))
 
 ; TODO: Create pre-processing environment
- ; Save intermediate files
+; Save intermediate files
 ;
 ; {:nodes = nodes to add
 ;  :rels = rels to add (check if ID is in nodes or if we must hit the index, delete if not found at all)

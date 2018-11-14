@@ -1,6 +1,7 @@
 (ns odg.gen-database
   (:require clojure.java.io
             clojure.java.shell
+            clojure.pprint
             [taoensso.timbre :as timbre]
             [me.raynes.fs :as fs]
             [clojure.string]
@@ -119,11 +120,17 @@
 
     (info "Creating root nodes")
     (dbh/submit-batch-job
-      (-> job/blank-batch)
-      (assoc :nodes (job/create-root-species-nodes (:genomes config)))
-      (assoc :rels  (job/create-root-species-rels (:genomes config)))
-      (assoc :species "Root Import")
-      (assoc :version "Root Import"))
+      (-> job/blank-batch
+        (assoc :nodes (job/create-root-species-nodes (:genomes config)))
+        (assoc :rels  (job/create-root-species-rels (:genomes config)))
+        (assoc :species "Root Import")
+        (assoc :version "Root Import")))
+
+    (clojure.pprint/pprint (-> job/blank-batch
+                             (assoc :nodes (job/create-root-species-nodes (:genomes config)))
+                             (assoc :rels  (job/create-root-species-rels (:genomes config)))
+                             (assoc :species "Root Import")
+                             (assoc :version "Root Import")))
 
     (doseq [[abbrev genome] (:genomes config)]
      (info "Beginning import of: " (:name genome) (:version genome) "aka" (:abbrev genome))
@@ -162,7 +169,8 @@
                           (odg.proteome/import-fasta
                             (:name genome)
                             (:version genome)
-                            (str (:root genome) "/" prot)))
+                            (str (:root genome) "/" prot)
+                            annotation))
                         (:proteome genome)))
 
            first-batch (merge-with

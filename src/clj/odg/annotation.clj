@@ -329,15 +329,15 @@
                               (get node-map id))
             job {:species species
                  :version version
-                 :nodes (map (fn [x] (apply odg.job/->Node x)) nodes)
+                 :nodes (map (fn [[x y]] (odg.job/->Node x y)) nodes)
                  :rels (map
-                        (fn [x] (apply odg.job/->Rel x)
-                          (concat
-                            (create-parent-of-rels nodes)
-                            (create-located-on-rels top-level-nodes))))
+                        (fn [x] (apply odg.job/rel x))
+                        (concat
+                          (create-parent-of-rels nodes)
+                          (create-located-on-rels top-level-nodes)))
                  :indices [(batch/convert-name species version)]}]
 
-        (info "Identified" (count loners) "loners in" filename)
+        (info "Identified" (count loners) "loners in" filename loners)
         job))))
 
 (defn import-gff-cli

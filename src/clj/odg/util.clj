@@ -1,6 +1,7 @@
 (ns odg.util
   (:require
-    [taoensso.timbre :as timbre])
+    [taoensso.timbre :as timbre]
+    [odg.job])
   (:import (org.neo4j.graphdb NotFoundException
                               NotInTransactionException
                               RelationshipType
@@ -180,5 +181,27 @@
          :note
          :other_name
          :name)
-       properties)))
+       properties)
+      "."
+      (name (get :type properties :missingtype))))
    labels])
+
+(defn wrap-rename-property-field
+  [[properties labels] fieldfrom fieldto]
+  (let [fieldval (get fieldfrom properties)]
+    [(assoc properties fieldto fieldval
+      (dissoc properties fieldfrom))
+     labels]))
+
+(defn wrap-add-field
+ [[properties labels] field fieldval]
+ [(assoc properties field fieldval) labels])
+
+(defn wrap-merge-properties
+ [[props labs] new-props]
+ [(merge props new-props) labs])
+
+; probably not working yet....
+(defn wrap-convert-to-node
+ [[props labs]]
+ (odg.job/->Node props labs))

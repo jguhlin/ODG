@@ -422,7 +422,7 @@
                                :action :query-properties
                                :query query-ids
                                :filter-fn (fn [id properties labels]
-                                            (if (some (hash-set "mRNA" "Protein" "Gene" "gene" "protein" "Annotation" "annotation") labels)
+                                            (if (some (hash-set "Protein" "mRNA" "Gene" "gene" "protein" "Annotation" "annotation") labels)
                                               id
                                               nil))
                                :results-fn (fn [x] (get x "bitscore"))})))
@@ -437,7 +437,6 @@
                                            (if (some (hash-set "mRNA" "Protein" "Gene" "gene" "annotation" "Annotation") labels)
                                              id
                                              nil))}))
-
 
         subject-nodes-ids (if self?
                             query-nodes-ids

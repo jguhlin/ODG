@@ -5,6 +5,7 @@
             [taoensso.timbre :as timbre]
             [odg.batch :as batch]
             [odg.job :as job]
+            [odg.util :as util]
             [odg.db-handler :as dbh]))
 
 (timbre/refer-timbre)
@@ -62,74 +63,57 @@
                               (java.util.regex.Pattern/quote (second y))
                               ".+)$"))
                             line))]
-
-
-
          (conj a [(first y) final-def]))))))
 
-(defn node-definition
-  [labels species version x]
-  (let [id (key x)
-        data (val x)]
-    [(merge
-       {:id id
-        :species species
-        :version version
-        :length (:length data)
-        :protein_definition_header (:protein_definition_header data)
-        :md5 (:md5 data)}
-       (into
-         {}
-         (for [[k v] (get-attributes-if-any (:protein_definition_header data))]
-           [(keyword k) v])))
-     (labels [(:PROTEIN batch/labels)])]))
+(defn create-node
+  [protein-entry]
+  (-> [(val protein-entry) []] ; Start node entry with no labels
+    util/wrap-urldecode
+    (util/wrap-add-field :id (key protein-entry))
+    (util/wrap-add-field :type "Protein")
+    (util/wrap-add-label "Protein")
+    (util/wrap-merge-properties (into {} (get-attributes-if-any (:protein_definition_header (val protein-entry)))))
+    util/wrap-add-missing-id))
 
-; TODO: Now only supports imports for brand-new databases, not existing;
-; Although.... maybe it still works with nodes-update-or-create....
+(defn create-rels
+  [job nodes]
+  (let [id-map (into {} (map (juxt odg.job/propid odg.job/id) (:nodes job)))]
+    (filter
+     identity
+     (for [[node labels] nodes]
+      (do
+       ;(debug (:id node) (get id-map (:id node)))
+       (if-let [anno-id (get id-map (:id node))]
+         (odg.job/rel (:HAS_PROTEIN db/rels) (:odg-id node) anno-id)))))))
+
 ; TODO: Also link protein to the gene with a "HAS_PROTEIN" relationship...
 ; not to the mRNA (although that is good too, maybe best)
 
 ; Called import-fasta in case there are future proteomes in another format
 (defn import-fasta
-  ([species version filename] (import-fasta
-                                species
-                                version
-                                filename
-                                job/blank-batch))
-  ([species version filename job]
+   [species version filename job]
    (info "Importing proteome for" species version filename)
    (let [data (get-from-file filename)
-         anno-ids (into {} (map (juxt odg.job/propid odg.job/id) (:nodes job)))
-
-         existing-set (apply hash-set (keys anno-ids))
-
-         ; Put here since we are going to update in place
-         job-nodes (into {} (map (juxt odg.job/id identity) (:nodes annotation)))
-
-         proteins-not-existing (remove (fn [x]
-                                         (existing-set (key x)))
-                                       data)
 
          species-label (batch/dynamic-label species)
          version-label (batch/dynamic-label (str species " " version))
          filename-label (batch/dynamic-label (batch/convert-name filename))
 
-         labels (partial into [species-label version-label filename-label])
+         nodes (doall
+                 (map
+                   (fn [x]
+                    (-> x
+                     (util/wrap-add-labels [species-label version-label filename-label])
+                     (util/wrap-create-odg-id-from-properties species version filename)
+                     (util/wrap-add-property :odg-filename filename)
+                     (util/wrap-convert-to-node)))
+                   (map create-node data)))
 
-         create-node (partial node-definition labels species version)
+         rels (create-rels job nodes)]
 
-         nodes (distinct
-                 (doall
-                   (map create-node proteins-not-existing)))]
+     (when-not (= (count nodes) (count rels))
+       (warn "Count of Nodes does not match count of Rels"))
 
      {:indices [(batch/convert-name species version)]
       :nodes-update-or-create nodes
-      :rels (distinct
-              (doall
-                (map
-                  (fn [x]
-                    [(:HAS_PROTEIN db/rels)
-                     (vec (dbh/get-ids x))
-                     (:id x)
-                     {}])
-                  nodes)))})))
+      :rels rels}))

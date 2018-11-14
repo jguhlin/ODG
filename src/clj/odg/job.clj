@@ -7,7 +7,11 @@
  (id [_] (:odg-id properties)))
 
 (defrecord Node [properties labels]
- OdgID
+ OdgID clojure.lang.Indexed
+ (nth [_ i] (case i 0 properties 1 labels
+              (throw (IndexOutOfBoundsException.))))
+ (nth [_ i default]
+   (case i 0 properties 1 labels default))
  (propid [_] (:id properties))
  (id [_] (:odg-id properties)))
 
@@ -15,7 +19,11 @@
   (->Node properties (into [] labels)))
 
 (defrecord Rel [type from to properties]
-  OdgID
+  OdgID clojure.lang.Indexed
+  (nth [_ i] (case i 0 type 1 from 2 to 3 properties
+               (throw (IndexOutOfBoundsException.))))
+  (nth [_ i default]
+    (case i 0 type 1 from 2 to 3 properties default))
   (propid [_] (:id properties))
   (id [_] (:odg-id properties)))
 
@@ -61,11 +69,11 @@
      (for [[abbrev genome] genomes]
        [(node {:id (:name genome)
                :odg-id (species-odg-id (:name genome))
-               :alt-id abbrev}
+               :alt-id (name abbrev)}
               (batch/dynamic-label "Species"))
         (node {:id (str (:name genome) " " (:version genome))
                :odg-id (species-version-odg-id (:name genome) (:version genome))
-               :alt-id abbrev}
+               :alt-id (name abbrev)}
               (batch/dynamic-label "SpeciesVersion"))]))))
 
 (defn create-root-species-rels [genomes]
