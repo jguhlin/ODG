@@ -85,7 +85,9 @@
      :landmarkhash :LandmarkHash
      :speciesroot :SpeciesRoot
      :blastresult :BlastResult
-     :interproscan :InterProScan}
+     :interproscan :InterProScan
+     :dbxref :dbxref
+     :dbxrefs :dbxrefs}
     (keyword
       (clojure.string/lower-case
         (name x)))
@@ -183,7 +185,7 @@
          :name)
        properties)
       "."
-      (name (get :type properties :missingtype))))
+      (name (get properties :type :missingtype))))
    labels])
 
 (defn wrap-rename-property-field
@@ -205,3 +207,20 @@
 (defn wrap-convert-to-node
  [[props labs]]
  (odg.job/->Node props labs))
+
+; Returns a node record
+(defn wrap-remove-nil-properties
+  [[props labs]]
+  (odg.job/->Node
+    (into {} (remove (comp nil? second) props)) ; Remove nil, but not false
+    labs))
+
+(defn wrap-preferred-capitalization
+ [[props labs]]
+ [(into {}
+    (for [[k v] props]
+      [(preferred-capitalization k) v]))
+  labs])
+
+
+  ;...

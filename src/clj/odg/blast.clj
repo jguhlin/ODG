@@ -160,11 +160,6 @@
       (catch Exception e
         (println e " happened on " query-id subject-id pct-identity query-length subject-length alignment-length)))))
 
-;; NOTE temporary, kept for reference
-#_(defn- -blastn-filter-single-match
-    [data]
-    (if (= 1 (count (second data))) true false))
-
 (defn- -blastn-step2-by-subject
   "Searches by subject-id for subject-id's with a single blast hit whose match has
   the search ID as the best hit as determined by bitscore, e-value, length, etc...
@@ -323,22 +318,22 @@
         bitscores       (into [] (map :bitscore results))
         mean            (incanter.stats/mean bitscores)
         n               (count results)
-        sd              (if (<= n 5) 0 (incanter.stats/sd bitscores))
-        mean-cutoff     (if (<= n 5) ; If n <= 5, store all BLAST+ hits
+        sd              (if (<= n 20) 0 (incanter.stats/sd bitscores))
+        mean-cutoff     (if (<= n 20) ; If n <= 20, store all BLAST+ hits
                          0
                           mean)
                           ; (+ mean sd)) ; Set cutoff to mean + sd
                          ; (- mean sd)) ; Cutoff is 1 SD below mean
         good-hit-cutoff (float
                            (cond ; if n <= 5, set the good hit cutoff at 0.5 * query-bitscore
-                            (<= n 5) (* 0.5 query-bitscore)
-                             (> n 5) (if (> (+ mean sd sd) query-bitscore)
+                            (<= n 20) (* 0.5 query-bitscore)
+                             (> n 20) (if (> (+ mean sd sd) query-bitscore)
                                        (* 0.5 query-bitscore) ; 50% of query-bitscore if (+ mean sd sd) is higher than total possible
                                        (+ mean sd sd))))  ; mean + sd + sd
         top-hit-cutoff  (float
                            (cond ; if n <= 5, set top-hit cutoff to 0.75 * query-bitscore
-                            (<= n 5) (* 0.75 query-bitscore) ; Including 1
-                            (>  n 5) (min
+                            (<= n 20) (* 0.75 query-bitscore) ; Including 1
+                            (>  n 20) (min
                                        (+ mean sd sd sd) ; mean + 3*sd
                                        query-bitscore)))] ; Or query bitscore if less than mean + 3*sd
 
@@ -511,8 +506,6 @@
                (partition-all 10000 comparative-blasts))]
 
           (doseq [entries processed-batches]
-            (debug "BLAST Results Import")
-            (debug (clojure.string/join " " (take 5 entries)))
             (dbh/submit-batch-job
               {:species query-species
                :version query-version

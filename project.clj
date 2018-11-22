@@ -27,16 +27,18 @@
   :url "http://example.com/FIXME"
   :jvm-opts ^:replace [
                        "-Xms6G"
-                       "-Xmx6G"]
-                       ;"-XX:MaxDirectMemorySize=1G" ; May have caused a huge slowdown? At least in eclipse...
+                       "-Xmx6G"
+                       "-XX:+UseConcMarkSweepGC"
+                       "-XX:+UseCompressedOops"
+                       "-XX:MaxDirectMemorySize=1G" ; May have caused a huge slowdown? At least in eclipse...
                        ;"-XX:+UseParallelGC"
                        ;"-XX:+UseConcMarkSweepGC"
                        ;"-XX:+UseCondCardMark"
                        ;"-XX:+UseBiasedLocking"
                        ;"-XX:+AggressiveOpts"
                        ;"-XX:+UseCompressedOops"
-                       ;"-XX:+UseFastAccessorMethods"
-                       ;"-XX:+DoEscapeAnalysis"
+                       "-XX:+UseFastAccessorMethods"
+                       "-XX:+DoEscapeAnalysis"]
                        ;"-Xss64M"
                        ;"-d64"
                        ;"-server"

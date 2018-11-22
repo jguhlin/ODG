@@ -92,9 +92,9 @@
     (info "Loading mapping file")
     (dbh/load-mapping "data/misc/mapping.tsv"))
 
-  (info "Importing ontologies")
-  (when-not (clojure.string/blank? (get-in config [:global :GO]))
-    (ontologies/import-obo "GO" (get-in config [:global :GO])))
+;  (info "Importing ontologies")
+;  (when-not (clojure.string/blank? (get-in config [:global :GO])))
+;    (ontologies/import-obo "GO" (get-in config [:global :GO])))
 
   (when-not (clojure.string/blank? (get-in config [:global :PO]))
     (ontologies/import-obo "PO" (get-in config [:global :PO])))
@@ -164,14 +164,15 @@
            proteome (apply
                       merge-with
                       (comp distinct concat)
-                      (map
+                      (doall
+                       (map
                         (fn [prot]
                           (odg.proteome/import-fasta
                             (:name genome)
                             (:version genome)
                             (str (:root genome) "/" prot)
                             annotation))
-                        (:proteome genome)))
+                        (:proteome genome))))
 
            first-batch (merge-with
                          (comp distinct concat)
@@ -181,7 +182,6 @@
 
 
        (dbh/submit-batch-job first-batch)
-       (Thread/sleep 20000)
        ; (dbh/submit-batch-job proteome-batch)
 
        (when
@@ -259,8 +259,6 @@
 
 
     ; Must be at the end
-
-   (Thread/sleep 20000)
 
    (info "Final InterProScan import")
    (dbh/submit-batch-job @interproscan-final))

@@ -27,6 +27,7 @@
                           logf tracef debugf infof warnf errorf fatalf reportf
                           spy logged-future with-log-level with-logging-config
                           sometimes)])
+
 (require '[taoensso.timbre.profiling :as profiling
            :refer (pspy pspy* profile defnp p p*)])
 
@@ -575,9 +576,9 @@
 ; read & write channel - Read & Write operations to the database, returns a value
 
 ; Async server, buffer up to 10k operations
-(def db-ch (chan 1000))
-(def write-ch (chan 1000))
-(def rw-ch (chan 1000))
+(def db-ch (chan 10))
+(def write-ch (chan 20))
+(def rw-ch (chan 20))
 
 (defn query [data]
   (let [index-name (:index data)
@@ -687,7 +688,7 @@
 
 ; Write-ch returns nothing, so we have a reusable return-ch we use
 (defn start-write-ch []
-  (doseq [_ (range 100)] ; 100 Write threads
+  (doseq [_ (range 10)] ; 10 Write threads
     (let [return-ch (chan (dropping-buffer 1))]
       (go-loop []
         (when-let [message (<! write-ch)]
@@ -809,6 +810,7 @@
 
 (defn submit-batch-job
   [batch-package]
+  (System/gc)
   (info "Batch Job, Indices: " (:indices batch-package))
   (info "Batch Job, Rels: " (count (:rels batch-package)))
 

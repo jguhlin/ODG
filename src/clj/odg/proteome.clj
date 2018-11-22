@@ -41,14 +41,15 @@
         "length"   ["protein-length" y]
         "md5"      ["protein-md5" y]
                    [x y]))
-    (let [x (map
-              (juxt second third)
-              (filter
-                identity
-                (concat
-                  (re-seq #"(\w+):(.+?)\s" line)
-                  (re-seq #"(\w+?)=(.+?)(;|$)" line)
-                  (re-seq #"(\w+?)=(.+?)\s" line))))]
+    (let [x (doall
+              (map
+                (juxt second third)
+                (filter
+                  identity
+                  (concat
+                    (re-seq #"(\w+):(.+?)\s" line)
+                    (re-seq #"(\w+?)=(.+?)(;|$)" line)
+                    (re-seq #"(\w+?)=(.+?)\s" line)))))]
 
       (if
         (> (count x) 1)
@@ -68,23 +69,31 @@
 (defn create-node
   [protein-entry]
   (-> [(val protein-entry) []] ; Start node entry with no labels
-    util/wrap-urldecode
+    (util/wrap-urldecode)
     (util/wrap-add-field :id (key protein-entry))
     (util/wrap-add-field :type "Protein")
     (util/wrap-add-label "Protein")
     (util/wrap-merge-properties (into {} (get-attributes-if-any (:protein_definition_header (val protein-entry)))))
-    util/wrap-add-missing-id))
+    (util/wrap-add-missing-id)))
 
 (defn create-rels
   [job nodes]
-  (let [id-map (into {} (map (juxt odg.job/propid odg.job/id) (:nodes job)))]
+  (let [id-map (into {}
+                 (concat
+                   (map (juxt odg.job/propid odg.job/id) (:nodes job))
+                   (map (juxt (comp :prot_id :properties) odg.job/id) (:nodes job))
+                   (map (juxt (comp :RefSeq_Prot :properties) odg.job/id) (:nodes job))))]
     (filter
      identity
      (for [[node labels] nodes]
       (do
        ;(debug (:id node) (get id-map (:id node)))
-       (if-let [anno-id (get id-map (:id node))]
-         (odg.job/rel (:HAS_PROTEIN db/rels) (:odg-id node) anno-id)))))))
+       (if-let [anno-id (some (fn [x] (get id-map x))
+                          (concat [(:id node)]
+                                  (clojure.string/split (:id node) #"\|")
+                                  (clojure.string/split (:id node) #"\s+")))]
+         (odg.job/rel (:HAS_PROTEIN db/rels) (:odg-id node) anno-id)
+         (warn (:id node) "does not connect to any gff3 entries")))))))
 
 ; TODO: Also link protein to the gene with a "HAS_PROTEIN" relationship...
 ; not to the mRNA (although that is good too, maybe best)
@@ -112,7 +121,8 @@
          rels (create-rels job nodes)]
 
      (when-not (= (count nodes) (count rels))
-       (warn "Count of Nodes does not match count of Rels"))
+       (warn "Count of Nodes does not match count of Rels")
+       (warn "Nodes:" (count nodes) "Rels:" (count rels)))
 
      {:indices [(batch/convert-name species version)]
       :nodes-update-or-create nodes

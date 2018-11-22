@@ -2,9 +2,14 @@
   "Support for importing ontologies (OBO-formatted files). Primarily for Gene Ontologies but should work for Plant Ontologies and any others that follow the OBO format."
   (:require
     clojure.java.io
+    odg.job
     [odg.db :as db]
+    [clojure.core.async :as async]
     [cheshire.core :refer :all]
     [odg.batch :as batch]
+    [clojure.core.async
+     :as async
+     :refer [chan >! >!! <! <!! close! go-loop dropping-buffer thread]]
     [odg.util :as util]
     [taoensso.timbre :as timbre]
     [digest :as digest]
@@ -20,43 +25,117 @@
 
 (timbre/refer-timbre)
 
-; Convert to new actor / db-handler format
+; Testing code
+; (nth (obo/parse "data/misc/go.obo") 1010)
+; (def go (obo/parse "data/misc/go.obo") 1010))
 
-;; Testing stuff
-; (with-open [rdr (clojure.java.io/reader "G://data//go.obo.txt")]
-;   (first (obo/parse rdr)))
+(defn xref-id-fn
+ [id]
+ (if (re-find #":" id)
+   (let [[x y] (clojure.string/split id #":" 2)]
+     (str (clojure.string/upper-case x) ":" y))
+   id))
+
+(defn create-odg-id
+ ([obo-def]
+  (str
+   (:type obo-def)
+   "." (:filename obo-def)
+   "." (:id obo-def)))
+ ([type filename id]
+  (str
+   type "." filename "." id)))
+
+(defn create-obo-node
+ [obo-def]
+ (odg.job/->Node
+    (assoc
+     obo-def
+     :def (:def (obo/parse-def (:def obo-def))))
+    (concat
+      [(batch/dynamic-label "OBOEntry")
+       (batch/dynamic-label (:type obo-def))]
+      (when (:namespace obo-def)
+         [(batch/dynamic-label (:namespace obo-def))]) ; For Gene Ontology (GO)
+      (when (:subset obo-def)
+        (for [subset (:subset obo-def)]
+          (batch/dynamic-label subset))))))
+
+(defn create-xref-nodes
+  [obo-def xrefs]
+  (for [xref (:xref obo-def)
+        :let [xref-type
+              (first
+                (clojure.string/split xref #":" 2))]]
+    (odg.job/->Node {:id xref
+                     :filename (:filename obo-def)
+                     :type xref-type
+                     :odg-id (create-odg-id
+                              xref-type
+                              (:filename obo-def
+                               xref))}
+                    [(batch/dynamic-label "OBOEntry")
+                     (batch/dynamic-label xref-type)
+                     (batch/dynamic-label "XREF")])))
+
+(defn create-dbxref-nodes
+  [obo-def dbxrefs]
+  (for [dbxref dbxrefs
+        :let [xref-type
+              (first
+                (clojure.string/split (:id dbxref) #":" 2))]]
+    (odg.job/->Node {:id (:id dbxref)
+                     :filename (:filename obo-def)
+                     :description (:description dbxref)
+                     :modifier (:modifier dbxref)
+                     :type xref-type
+                     :odg-id (create-odg-id
+                              xref-type
+                              (:filename obo-def)
+                              (:id dbxref))}
+                    [(batch/dynamic-label "OBOEntry")
+                     (batch/dynamic-label xref-type)
+                     (batch/dynamic-label "XREF")])))
+
+(defn create-obo-nodes
+ [obo-def]
+ (concat
+  [(create-obo-node obo-def)]
+  (when (:xref obo-def)
+    (create-xref-nodes obo-def (:xref obo-def)))
+  (let [dbxref (:dbxref (obo/parse-def (:def obo-def)))]
+   (when (> (count dbxref) 0)
+     (println dbxref)
+     (create-dbxref-nodes obo-def dbxref)))))
+
+; Remaining work:
+; Merge nodes (esp XREFs)
+; Replace relationship labels with ODG ID's when possible
+; Create relationships
+; Handle async stuff back to normal
+
+; Creating new, faster, better, parser
+;(defn -parser [obo-type filename obo-defs])
+; (let [node-chan (chan 5000)]))
+;       rel-chan  (chan 5000)]))
+;       nodes-out (chan)]))
+;       rels-out  (chan)]))
 ;
-; (with-open [rdr (clojure.java.io/reader "G://data//go.obo.txt")]
-;  (nth (obo/parse rdr) 1010))
-; (with-open [rdr (clojure.java.io/reader "G://data//go.obo.txt")]
-;     (nth (obo/parse rdr) 5002))
-
-; XREF's
-;(with-open [rdr (clojure.java.io/reader "G://data//go.obo.txt")] (println (map obo/parse-dbxref (:xref (nth (obo/parse rdr) 5002)))))
-; Entry
-; (with-open [rdr (clojure.java.io/reader "/localhome/msiworkspace/odg/data/GO/go.obo")] (map println (nth (obo/parse rdr) 5002)))
-
-; TODO: Add more XREF's and DBXREF's from definition line
-
-; OBO imports must be sent to be pre-processed by the index actor
-; To ensure duplicates are not made and data can be imported properly
-; Can also check to see if existing nodes are present and add to their properties (if necessary)
-
-
-; Test data
-; (def go-data (import-obo "GO" "G:/data/go.obo.txt"))
-
-; (def psi (obo/parse "G://data/psi-mi.obo.txt"))
-; (:def (first (filter #(= (:id %) "MI:1290") psi)))
-; (obo/parse-def (:def (first (filter #(= (:id %) "MI:1290") psi))))
-
-; (def psi-mi (import-obo "PSI-MI" "G://data/psi-mi.obo.txt"))
-; (filter #(= (:id %) "MI:0814") (map first (:nodes-update-or-create psi-mi)))
-; (filter (fn [x] (= "PMID:11578931" (:id (first x)))) (:nodes-update-or-create psi-mi))
-
-; (def po (import-obo "PO" "G://data/plant_ontology.obo.txt"))
-
-; Possibly re-write this code for performance..
+;       ; (doseq [_ (range 100)] ? to speed it up some...
+;       node-work (go-loop [])]))
+;                   (when-let [obo-def (<! node-chan)]))]))
+;                     (>! nodes-out)))]))
+;                      (-> obo-def))))]))
+;                       (assoc :type obo-type)))))]))
+;                       (assoc :filename filename)))))]))
+;                       (fn [x] (assoc x :odg-id (create-odg-id x)))))))]))
+;                       create-obo-node))))])) ; Converts to node format here...
+;                     (recur)))]))
+;
+;       rel-work  (go-loop [])]))
+;                   (when-let [message (<! node-chan)]))]))
+;                     (>! nodes-out (...))))]))
+;                     (recur)))]))
 
 (defn -parser
   [type filename]
@@ -90,8 +169,7 @@
 
 
     (merge
-      {
-       :indices ["main" (clojure.string/upper-case type)] ; Add suggested indices here, other than "main" TODO: implement
+      {:indices ["main" (clojure.string/upper-case type)] ; Add suggested indices here, other than "main" TODO: implement
        :id-fields ["id"]}
 
       (r/fold
